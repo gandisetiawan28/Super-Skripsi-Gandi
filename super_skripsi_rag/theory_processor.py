@@ -1,7 +1,7 @@
 import json
 import httpx
 import asyncio
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Callable
 
 from prompts import THEORY_EXTRACTION_PROMPT
 
@@ -40,7 +40,7 @@ async def extract_structured_theories(
     doc_year: str = "n/a",
     doc_journal: str = "Tidak tersedia",
     custom_prompt: str = "",
-    check_abort: Optional[callable] = None # NEW
+    check_abort: Optional[Callable] = None # NEW
 ) -> List[Dict]:
     """
     Menggunakan AI untuk membedah teks PDF menjadi daftar teori terstruktur (JSON).

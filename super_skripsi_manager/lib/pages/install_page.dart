@@ -11,13 +11,10 @@ class InstallPage extends StatelessWidget {
 
   Future<void> _runInstaller(BuildContext context) async {
     try {
-      // Path to the batch script relative to project root
-      final scriptPath = p.join(
-        Directory.current.path,
-        'assets',
-        'scripts',
-        'install_addin.bat',
-      );
+      // Path relatif terhadap file .exe yang sedang berjalan
+      final exePath = Platform.resolvedExecutable;
+      final appDir = p.dirname(exePath);
+      final scriptPath = p.join(appDir, 'addin', 'install_addin.bat');
 
       if (!await File(scriptPath).exists()) {
         throw Exception('Installer script not found at $scriptPath');
@@ -44,7 +41,9 @@ class InstallPage extends StatelessWidget {
 
   Future<void> _runExtensionInstaller(BuildContext context) async {
     try {
-      final scriptPath = 'D:\\SUPER SKRIPSI GANDI\\super_skripsi_extension\\One-Click-Install.bat';
+      final exePath = Platform.resolvedExecutable;
+      final appDir = p.dirname(exePath);
+      final scriptPath = p.join(appDir, 'extension', 'One-Click-Install.bat');
 
       if (!await File(scriptPath).exists()) {
         throw Exception('Extension installer script not found at $scriptPath');

@@ -6,15 +6,47 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![ChromeExtension](https://img.shields.io/badge/Chrome_Extension-4285F4?logo=google-chrome&logoColor=white)
 
-**Super Skripsi Gandi (SSG)** adalah ekosistem asisten riset berbasis AI yang dirancang untuk membantu mahasiswa dan peneliti dalam mengelola referensi, mengekstraksi teori secara otomatis, dan menyinkronkan data riset langsung ke Microsoft Word.
+**Super Skripsi Gandi (SSG)** adalah platform riset masa depan yang menggabungkan kekuatan *Large Language Models* (LLM) dengan data riset lokal Anda. SSG membantu mengubah tumpukan PDF jurnal yang membingungkan menjadi database teori terstruktur yang siap pakai.
 
-## 🌟 Fitur Utama
+---
 
-- **🧠 RAG (Retrieval-Augmented Generation) Engine**: Pencarian semantik cerdas berbasis ChromaDB untuk menemukan kutipan yang relevan dari puluhan PDF riset Anda.
-- **📑 Theory Extractor**: Bedah dokumen PDF secara otomatis menjadi struktur teori (Sitasi, Verbatim, Sub-bab) menggunakan model AI (DeepSeek, Gemini, OpenAI).
-- **🧩 Browser Bridge Extension**: Automasi interaksi dengan provider AI web (seperti DeepSeek Web) secara gratis dan efisien tanpa API berbayar yang mahal.
-- **📝 Word Bridge Integration**: Kirim kutipan dan teori yang sudah diekstrak langsung ke Microsoft Word sebagai Add-in.
-- **🛡️ Emergency Abort System**: Mekanisme penghentian instan untuk mengontrol AI jika terjadi kesalahan generate, menghemat token dan waktu.
+## 🌟 Fitur Mendalam
+
+### 🧠 Semantic RAG Engine (Local-First)
+Bukan sekadar pencarian kata kunci biasa. SSG menggunakan **Vector Embeddings** untuk memahami konteks riset Anda.
+- **Hybrid Search**: Menggabungkan pencarian semantik (makna) dengan filter metadata (Bab, Sub-bab, Variabel).
+- **Persistent Vector DB**: Menggunakan **ChromaDB** yang disimpan di lokal, memastikan data tidak hilang meski aplikasi ditutup.
+- **Smart Chunking**: Teknik pemotongan dokumen yang cerdas agar konteks antar paragraf tetap terjaga.
+
+### 📑 Automated Theory Extraction
+Proses bedah dokumen yang manual dan melelahkan kini diotomatisasi sepenuhnya.
+- **Structure Recognition**: AI secara cerdas mengenali mana yang merupakan Kutipan Verbatim, Sitasi (APA 7th), dan Penjelasan Teori.
+- **JSON Mapping**: Data dikonversi menjadi format JSON terstruktur yang memudahkan integrasi ke database atau ekspor dokumen.
+- **Noise Cleaning**: Menghilangkan header, footer, dan nomor halaman yang mengganggu dari kutipan teks asli.
+
+### 🧩 Browser Bridge & Multi-Layer Abort
+Inovasi unik untuk menggunakan AI Web tanpa biaya API tambahan yang mahal.
+- **Emergency Stop System**: Sistem jalur ganda (Dual-Polling) yang menjamin AI berhenti dalam <1 detik jika user menekan tombol Batal, mencegah penggunaan token berlebih.
+- **Provider Heartbeat**: Monitor status koneksi antara Flutter Manager dan Ekstensi Browser secara real-time.
+- **Automasi DOM**: Simulasi interaksi manusia pada web DeepSeek/Gemini untuk pengetikan prompt yang stabil.
+
+### 📝 Integration Bridge (MS Word & RIS)
+Sinkronisasi langsung ke meja kerja Anda.
+- **Word Add-in**: Masukkan teori yang sudah ditemukan langsung ke dokumen Word tanpa perlu copy-paste manual.
+- **RIS Export**: Dukungan ekspor format RIS untuk diimpor ke aplikasi manajemen referensi seperti Mendeley atau Zotero.
+
+---
+
+## 🛡️ Keamanan & Privasi Data
+
+SSG dirancang dengan prinsip **Private-by-Design**:
+
+1.  **Local-Only Storage**: Seluruh dokumen PDF, index database (Vector DB), dan metadata riset Anda disimpan **100% di komputer lokal**. Tidak ada data riset yang diunggah ke server pihak ketiga (kecuali ke provider AI yang Anda pilih).
+2.  **API Key Encryption**: API Key yang Anda masukkan disimpan menggunakan **Secure Storage** bawaan OS (Windows Credential Manager), terenkripsi dan tidak dapat diakses oleh aplikasi lain.
+3.  **Sandboxed Automation**: Browser Extension berjalan di dalam *sandbox* Chrome yang ketat, memastikan ia hanya berinteraksi dengan tab AI yang ditentukan.
+4.  **No Tracking Policy**: Aplikasi ini tidak mengumpulkan data penggunaan, analitik, atau informasi pribadi pengguna.
+
+---
 
 ## 🛠️ Arsitektur Teknologi
 
@@ -24,6 +56,8 @@ Sistem ini terbagi menjadi 3 komponen utama yang saling terhubung:
 2.  **API Bridge (Middleware)**: Server **Node.js** yang bertugas sebagai jembatan komunikasi antara Manager dan Browser Extension.
 3.  **RAG Core (Backend)**: Engine berbasis **Python (FastAPI)** untuk pemrosesan PDF, OCR, Embeddings, dan Vector Storage (ChromaDB).
 
+---
+
 ## 🚀 Cara Menjalankan
 
 ### Prasyarat
@@ -32,37 +66,8 @@ Sistem ini terbagi menjadi 3 komponen utama yang saling terhubung:
 - Python 3.10+
 - Google Chrome (untuk Extension)
 
-### 1. Jalankan RAG Backend (Python)
-```bash
-cd super_skripsi_rag
-pip install -r requirements.txt
-python main.py
-```
-
-### 2. Jalankan API Bridge (Node.js)
-```bash
-cd super_skripsi_extension/api-bridge
-node server.js
-```
-
-### 3. Jalankan Manager App (Flutter)
-```bash
-cd super_skripsi_manager
-flutter run -d windows
-```
-
-### 4. Install Extension
-1. Buka `chrome://extensions` di Google Chrome.
-2. Aktifkan **Developer Mode**.
-3. Klik **Load Unpacked** dan pilih folder `super_skripsi_extension`.
+*(Lihat panduan instalasi mendalam di [Wiki](#) - segera hadir)*
 
 ---
-
-## 📸 Demo & Tampilan
-*(Anda bisa menambahkan screenshot dashboard Anda di sini)*
-
-## 🤝 Kontribusi
-Project ini dikembangkan oleh **Gandi Setiawan** sebagai solusi inovatif untuk automasi riset akademik. Kritik dan saran sangat terbuka melalui Pull Request atau Issue.
-
----
-**Made with ❤️ for Academic Excellence.**
+**Developed by Gandi Setiawan.**
+"Empowering Academic Excellence through Intelligent Automation."

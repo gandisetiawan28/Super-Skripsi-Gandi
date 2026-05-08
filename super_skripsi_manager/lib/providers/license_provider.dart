@@ -26,10 +26,36 @@ final licenseStateProvider =
 class LicenseNotifier extends StateNotifier<AsyncValue<LicenseModel?>> {
   final Ref _ref;
   late final LicenseService _service;
+  Timer? _validationTimer;
   
   LicenseNotifier(this._ref) : super(const AsyncValue.data(null)) {
     _service = _ref.read(licenseServiceProvider);
-    _loadCached();
+    _loadCached().then((_) => _startPeriodicValidation());
+  }
+
+  @override
+  void dispose() {
+    _validationTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPeriodicValidation() {
+    _validationTimer?.cancel();
+    // Cek setiap 5 menit (300 detik)
+    _validationTimer = Timer.periodic(const Duration(minutes: 5), (_) => _checkCurrentStatus());
+  }
+
+  Future<void> _checkCurrentStatus() async {
+    final current = state.value;
+    if (current == null) return;
+
+    try {
+      final isValid = await _service.reValidateLicense(current);
+      if (!isValid) {
+        // Jika tidak valid, lempar ke login
+        logout();
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadCached() async {
@@ -37,6 +63,10 @@ class LicenseNotifier extends StateNotifier<AsyncValue<LicenseModel?>> {
     try {
       final cached = await _service.getCachedLicense();
       state = AsyncValue.data(cached);
+      if (cached != null) {
+        // Cek sekali saat startup juga
+        await _checkCurrentStatus();
+      }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }

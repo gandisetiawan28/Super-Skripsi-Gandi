@@ -5,7 +5,7 @@ import 'device_info_service.dart';
 
 class LicenseValidationService {
   // ⬇️ TEMPEL URL WEB APP GOOGLE ANDA DI SINI ⬇️
-  static const String _baseUrl = "https://script.google.com/macros/s/AKfycbxwegQ20JN_K-HYyK0Y6Xc3L97zzfoKPrGSYGvdsZmZ9NaChNE64DFaQIgpaWM_EYUN/exec";
+  static const String _baseUrl = "https://script.google.com/macros/s/AKfycbzJg_yiBG1uLdL2E28T7XfRz0CR0qDYgMG2AzBH6J9kqQorZw7NCEMqzKXOVqCA8X1j/exec";
   static const String _secretToken = "SUPER_GANDI_SECURE_2024";
 
   final DeviceInfoService _deviceInfo = DeviceInfoService();
@@ -57,6 +57,38 @@ class LicenseValidationService {
       }
     } catch (e) {
       return {"status": "error", "message": "Koneksi Gagal: $e"};
+    }
+  }
+
+  /// Mengecek status lisensi yang sedang aktif (apakah masih Active atau sudah Blocked/Dihapus)
+  Future<Map<String, dynamic>> validate(String licenseKey) async {
+    try {
+      final deviceId = await _deviceInfo.getUniqueId();
+      
+      var response = await http.post(
+        Uri.parse(_baseUrl),
+        body: jsonEncode({
+          "token": _secretToken,
+          "action": "validate", // Aksi baru di Google Apps Script untuk cek status
+          "license_key": licenseKey,
+          "device_id": deviceId,
+        }),
+      );
+
+      if (response.statusCode == 302) {
+        final redirectUrl = response.headers['location'];
+        if (redirectUrl != null) {
+          response = await http.get(Uri.parse(redirectUrl));
+        }
+      }
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {"status": "error", "message": "Server Error"};
+      }
+    } catch (e) {
+      return {"status": "error", "message": "Koneksi Gagal"};
     }
   }
 

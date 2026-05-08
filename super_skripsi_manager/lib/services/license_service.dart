@@ -10,7 +10,7 @@ import 'license_validation_service.dart';
 
 class LicenseService {
   // Production Endpoint (Google Apps Script)
-  static const String _apiEndpoint = 'https://script.google.com/macros/s/AKfycbxwegQ20JN_K-HYyK0Y6Xc3L97zzfoKPrGSYGvdsZmZ9NaChNE64DFaQIgpaWM_EYUN/exec';
+  static const String _apiEndpoint = 'https://script.google.com/macros/s/AKfycbzJg_yiBG1uLdL2E28T7XfRz0CR0qDYgMG2AzBH6J9kqQorZw7NCEMqzKXOVqCA8X1j/exec';
   static const String _boxName = 'license_store';
   static const String _sessionKey = 'current_session';
 
@@ -81,6 +81,37 @@ class LicenseService {
       
       // Jika tidak ada cache, tampilkan error asli agar tahu kenapa gagal
       throw Exception('Gagal menghubungi server. Info: ${e.toString().replaceAll("Exception: Koneksi Gagal:", "")}');
+    }
+  }
+
+  /// Memvalidasi ulang lisensi yang sudah tersimpan (untuk Background Check)
+  Future<bool> reValidateLicense(LicenseModel license) async {
+    // Admin bypass
+    if (license.key == '@Gandisetiawan') return true;
+
+    try {
+      final result = await _remoteApi.validate(license.key);
+      
+      // Jika status bukan 'success' atau status lisensi bukan 'Active', maka dianggap tidak valid
+      if (result['status'] != 'success' || result['license_status'] != 'Active') {
+        await clearLicense();
+        return false;
+      }
+      
+      // Update tanggal validasi terakhir di cache
+      final updatedLicense = LicenseModel(
+        userName: license.userName,
+        deviceId: license.deviceId,
+        key: license.key,
+        status: 'aktif',
+        expiryDate: license.expiryDate,
+        lastValidated: DateTime.now(),
+      );
+      await _cacheLicense(updatedLicense);
+      return true;
+    } catch (e) {
+      // Jika gagal koneksi, kita anggap masih valid (agar tidak logout saat internet mati sementara)
+      return true; 
     }
   }
 

@@ -21,6 +21,8 @@ function doPost(e) {
       return handleActivation(ss, data);
     } else if (action === "check_update") {
       return handleCheckUpdate(ss, data);
+    } else if (action === "validate") {
+      return handleValidation(ss, data);
     } else if (action === "submit_survey") {
       return handleSurvey(ss, data);
     } else {
@@ -111,6 +113,36 @@ function handleSurvey(ss, data) {
   ]);
   
   return createResponse({ status: "success", message: "Survey disimpan" });
+}
+
+// FUNGSI VALIDASI REAL-TIME (CEK APAKAH MASIH AKTIF/DIBLOKIR)
+function handleValidation(ss, data) {
+  const sheet = ss.getSheetByName("Licenses");
+  const rows = sheet.getDataRange().getValues();
+  const key = data.license_key;
+  const deviceId = data.device_id;
+  
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === key) { 
+      // Cek Status (Kolom F - Index 5)
+      if (rows[i][5] === "Blocked") {
+        return createResponse({ status: "error", message: "Blocked", license_status: "Blocked" });
+      }
+      
+      // Cek apakah device masih terdaftar (Kolom B dan D)
+      const device1 = rows[i][1];
+      const device2 = rows[i][3];
+      
+      if (device1 === deviceId || device2 === deviceId) {
+        return createResponse({ status: "success", license_status: "Active" });
+      } else {
+        return createResponse({ status: "error", message: "Device mismatch", license_status: "Removed" });
+      }
+    }
+  }
+  
+  // Jika tidak ditemukan sama sekali (Baris dihapus)
+  return createResponse({ status: "error", message: "Not found", license_status: "Deleted" });
 }
 
 function createResponse(payload, code = 200) {

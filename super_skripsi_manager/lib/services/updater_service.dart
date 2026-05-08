@@ -6,8 +6,8 @@ import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
 class UpdaterService {
-  // Ganti dengan URL Vercel Anda setelah deploy
-  static const String _vercelUrl = 'https://your-project-name.vercel.app';
+  // URL Vercel asli Anda yang sudah LIVE
+  static const String _vercelUrl = 'https://super-skripsi-gandi.vercel.app';
   static const String _appSecretKey = 'SuperGandi2024'; // Harus sama dengan di Vercel
   static const String _currentVersion = '1.0.0';
 

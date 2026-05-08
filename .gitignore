@@ -1,0 +1,29 @@
+# Flutter / Dart
+**/build/
+**/.dart_tool/
+**/.packages
+**/pubspec.lock
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# Node.js
+**/node_modules/
+**/npm-debug.log
+**/yarn-error.log
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/venv/
+**/env/
+
+# IDEs
+**/.idea/
+**/.vscode/
+**/*.swp
+**/*.swo
+
+# Secrets
+**/.env
+**/*.log

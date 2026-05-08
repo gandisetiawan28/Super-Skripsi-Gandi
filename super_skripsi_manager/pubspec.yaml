@@ -1,0 +1,50 @@
+name: super_skripsi_manager
+description: "Super Skripsi Gandi Manager - Smart Research Engine"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_riverpod: ^2.6.1
+  google_fonts: ^6.2.1
+  http: ^1.2.2
+  crypto: ^3.0.6
+  path_provider: ^2.1.5
+  path: ^1.9.0
+  file_picker: 8.3.7
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  url_launcher: ^6.3.1
+  device_info_plus: ^11.3.0
+  package_info_plus: ^8.1.2
+
+  sqflite_common_ffi: ^2.3.4+4
+  sqflite_common: ^2.5.4+5
+  sqlite3_flutter_libs: ^0.5.28
+  uuid: ^4.5.1
+  intl: ^0.20.2
+  window_manager: 0.4.3
+  dio: ^5.7.0
+  flutter_staggered_grid_view: ^0.7.0
+  provider: ^6.1.2
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  desktop_drop: ^0.7.1
+  google_sign_in_all_platforms: ^1.2.1
+  googleapis: ^13.2.0
+  googleapis_auth: ^1.6.0
+  flutter_secure_storage: ^10.1.0
+  html: ^0.15.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

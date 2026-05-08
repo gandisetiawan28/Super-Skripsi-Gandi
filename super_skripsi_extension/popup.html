@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Skripsi Gandi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1 class="header-title">Super Skripsi Gandi</h1>
+      </div>
+      <div class="status-badge" id="statusBadge">
+        <span class="status-dot"></span>
+        <span class="status-text" id="statusText">Ready</span>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tabUpload" data-tab="upload">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/>
+          <polyline points="9 15 12 12 15 15"/>
+        </svg>
+        Upload File
+      </button>
+      <button class="tab" id="tabManual" data-tab="manual">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="17" y1="10" x2="3" y2="10"/>
+          <line x1="21" y1="6" x2="3" y2="6"/>
+          <line x1="21" y1="14" x2="3" y2="14"/>
+          <line x1="17" y1="18" x2="3" y2="18"/>
+        </svg>
+        Manual Input
+      </button>
+      <button class="tab" id="tabAPI" data-tab="api">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+          <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+          <line x1="6" y1="6" x2="6.01" y2="6"/>
+          <line x1="6" y1="18" x2="6.01" y2="18"/>
+        </svg>
+        API Bridge (n8n)
+      </button>
+    </div>
+
+    <!-- Upload Panel -->
+    <div class="panel active" id="panelUpload">
+      <div class="drop-zone" id="dropZone">
+        <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <p class="drop-text">Drop <strong>.xlsx</strong> or <strong>.csv</strong> here</p>
+        <label class="browse-btn" for="fileInput">Browse Files</label>
+        <input type="file" id="fileInput" accept=".xlsx,.csv" hidden>
+      </div>
+      <div class="file-info hidden" id="fileInfo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <span class="file-name" id="fileName"></span>
+        <span class="file-prompts" id="filePrompts"></span>
+        <button class="file-remove" id="fileRemove" title="Remove file">✕</button>
+      </div>
+    </div>
+
+    <!-- Manual Panel -->
+    <div class="panel" id="panelManual">
+      <textarea
+        class="manual-input"
+        id="manualInput"
+        placeholder="Paste your prompts here...&#10;&#10;One prompt per line.&#10;Each line = one message to Gemini."
+        spellcheck="false"
+      ></textarea>
+      <div class="manual-count">
+        <span id="lineCount">0</span> prompts detected
+      </div>
+    </div>
+
+    <!-- API Panel -->
+    <div class="panel" id="panelAPI">
+      <div class="api-card">
+        <div class="api-header">
+          <div class="api-title">n8n Integration</div>
+          <div class="toggle-container">
+            <label class="switch" for="apiToggle" title="Enable API Bridge">
+              <input type="checkbox" id="apiToggle" aria-label="Enable API Bridge">
+              <span class="slider-round"></span>
+            </label>
+          </div>
+        </div>
+        <div class="api-body">
+          <p class="api-desc">Enable this to allow n8n to send prompts to <strong id="apiProviderName">Gemini</strong> automatically.</p>
+          
+          <div class="api-setting">
+            <label for="apiUrl">Bridge URL</label>
+            <input type="text" id="apiUrl" placeholder="http://localhost:3000" class="api-input">
+          </div>
+          
+          <div class="api-status-box" id="apiStatusBox">
+            <span class="status-indicator" id="apiIndicator"></span>
+            <span id="apiStatusText">Status: Disabled</span>
+          </div>
+
+          <div class="api-info">
+            <strong>Endpoint for n8n:</strong><br>
+            <code id="apiEndpointText">http://localhost:3000/api/prompt</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column Selector (for Excel) -->
+    <div class="column-selector hidden" id="columnSelector">
+      <label class="setting-label">Select columns:</label>
+      <div id="columnCheckboxes" class="column-checkboxes"></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="settings">
+      <div class="setting-row">
+        <label class="setting-label" for="providerSelect">AI Provider</label>
+        <select id="providerSelect" class="provider-select">
+          <option value="gemini">Google Gemini</option>
+          <option value="chatgpt">ChatGPT</option>
+          <option value="claude">Claude.ai</option>
+          <option value="deepseek">DeepSeek</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <label class="setting-label" for="delaySlider">Delay between messages</label>
+        <div class="setting-value">
+          <input type="range" id="delaySlider" min="1" max="15" value="3" class="slider" aria-label="Delay between messages">
+          <span class="delay-display" id="delayDisplay">3s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-section" id="progressSection">
+      <div class="progress-header">
+        <span class="progress-label">Progress</span>
+        <div class="progress-actions">
+          <button class="btn-reset hidden" id="btnReset" title="Reset Progress">Reset</button>
+          <span class="progress-count" id="progressCount">0 / 0 prompts</span>
+        </div>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="btn btn-start" id="btnStart" title="Start Loop">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        Start
+      </button>
+      <button class="btn btn-stop" id="btnStop" disabled title="Stop Loop">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="4" y="4" width="16" height="16" rx="2"/>
+        </svg>
+        Stop
+      </button>
+      <div class="export-group">
+        <select id="exportFormat" class="export-select" title="Export Format" disabled>
+          <option value="xlsx">Excel</option>
+          <option value="csv">CSV</option>
+          <option value="doc">Word</option>
+        </select>
+        <button class="btn btn-export" id="btnExport" title="Download Results" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="log-section" id="logSection">
+      <div class="log-header" id="logToggle">
+        <span>Activity Log</span>
+        <svg class="log-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+      <div class="log-body hidden" id="logBody">
+        <div class="log-entries" id="logEntries"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="libs/xlsx.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

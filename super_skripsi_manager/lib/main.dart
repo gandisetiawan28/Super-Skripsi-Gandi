@@ -28,6 +28,8 @@ import 'providers/stats_provider.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'services/sync_service.dart';
+import 'services/updater_service.dart';
+import 'widgets/update_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -177,7 +179,36 @@ class _MainShellState extends ConsumerState<MainShell> {
       // Auto-start API Bridge (Node.js)
       final apiService = pk_provider.Provider.of<ApiBridgeService>(context, listen: false);
       await apiService.startServer();
+
+      // Check for updates
+      _checkUpdates();
     });
+  }
+
+  void _checkUpdates() async {
+    final updater = UpdaterService();
+    try {
+      final info = await updater.checkForUpdate();
+      if (info != null && info.hasInstaller && mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => UpdateDialog(
+            updateInfo: info,
+            onDownload: (url, name, progress) async {
+              final path = await updater.downloadUpdate(url, name, onProgress: progress);
+              if (path != null) {
+                await updater.executeInstaller(path);
+                // Matikan aplikasi agar installer bisa menimpa file lama
+                exit(0);
+              }
+            },
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Gagal cek update: $e');
+    }
   }
 
   @override

@@ -6,35 +6,28 @@ import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
 class UpdaterService {
-  // Placeholder — user sets their own repo
-  static const String _defaultOwner = 'YOUR_GITHUB_USERNAME';
-  static const String _defaultRepo = 'super-skripsi-gandi';
+  // Ganti dengan URL Vercel Anda setelah deploy
+  static const String _vercelUrl = 'https://your-project-name.vercel.app';
+  static const String _appSecretKey = 'SuperGandi2024'; // Harus sama dengan di Vercel
   static const String _currentVersion = '1.0.0';
 
-  String _owner = _defaultOwner;
-  String _repo = _defaultRepo;
-
-  void configure({required String owner, required String repo}) {
-    _owner = owner;
-    _repo = repo;
-  }
-
-  /// Check GitHub for latest release
+  /// Check Vercel for latest release
   Future<UpdateInfo?> checkForUpdate() async {
     try {
-      final url = 'https://api.github.com/repos/$_owner/$_repo/releases/latest';
       final response = await http.get(
-        Uri.parse(url),
-        headers: {'Accept': 'application/vnd.github.v3+json'},
+        Uri.parse(_vercelUrl),
+        headers: {
+          'Accept': 'application/json',
+          'x-app-key': _appSecretKey, // Header keamanan
+        },
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final tagName = (data['tag_name'] as String).replaceAll('v', '');
+        final tagName = data['version'] as String;
         final isNewer = _isNewerVersion(tagName, _currentVersion);
 
         if (isNewer) {
-          // Find Windows installer asset
           final assets = data['assets'] as List<dynamic>? ?? [];
           String? downloadUrl;
           String? assetName;
@@ -42,7 +35,7 @@ class UpdaterService {
           for (final asset in assets) {
             final name = asset['name'] as String;
             if (name.endsWith('.exe') || name.endsWith('.msix')) {
-              downloadUrl = asset['browser_download_url'] as String;
+              downloadUrl = asset['download_url'] as String;
               assetName = name;
               break;
             }
@@ -53,15 +46,12 @@ class UpdaterService {
             latestVersion: tagName,
             downloadUrl: downloadUrl,
             assetName: assetName,
-            releaseNotes: data['body'] as String? ?? '',
+            releaseNotes: data['notes'] as String? ?? '',
             publishedAt: data['published_at'] as String? ?? '',
           );
         }
-      } else if (response.statusCode == 403 || response.statusCode == 429) {
-        // Rate limited
-        throw RateLimitException(
-          'GitHub API rate limit exceeded. Try again later.',
-        );
+      } else if (response.statusCode == 401) {
+        throw Exception('Aplikasi tidak terotorisasi untuk mengecek update.');
       }
 
       return null; // No update available

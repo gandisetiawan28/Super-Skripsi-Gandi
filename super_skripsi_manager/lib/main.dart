@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
@@ -167,9 +168,14 @@ class _MainShellState extends ConsumerState<MainShell> {
     LogsPage(),           // 10
   ];
 
+  bool _isUpdateDialogOpen = false;
+  Timer? _updateTimer;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    
     // Auto-start services on app launch
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(serverProvider.notifier).startServer();
@@ -183,14 +189,38 @@ class _MainShellState extends ConsumerState<MainShell> {
 
       // Check for updates
       _checkUpdates();
+      
+      // Start periodic check every 1 hour
+      _updateTimer = Timer.periodic(const Duration(hours: 1), (timer) {
+        _checkUpdates();
+      });
     });
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _updateTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Jika aplikasi kembali aktif dari background/minimized
+    if (state == AppLifecycleState.resumed) {
+      _checkUpdates();
+    }
+  }
+
   void _checkUpdates() async {
+    if (_isUpdateDialogOpen) return; // Jangan cek jika dialog sudah terbuka
+
     final updater = UpdaterService();
     try {
       final info = await updater.checkForUpdate();
       if (info != null && info.hasInstaller && mounted) {
+        setState(() => _isUpdateDialogOpen = true);
+        
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -205,10 +235,12 @@ class _MainShellState extends ConsumerState<MainShell> {
               }
             },
           ),
-        );
+        ).then((_) {
+          if (mounted) setState(() => _isUpdateDialogOpen = false);
+        });
       }
     } catch (e) {
-      debugPrint('Gagal cek update: $e');
+      debugPrint('Auto-Update Check Error: $e');
     }
   }
 

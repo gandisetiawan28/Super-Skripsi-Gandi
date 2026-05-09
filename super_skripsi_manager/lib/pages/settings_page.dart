@@ -262,11 +262,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       '${(_downloadProgress * 100).toStringAsFixed(0)}%',
                       style: GoogleFonts.inter(fontSize: 12),
                     ),
-                  ] else
+                  ] else if (_updateInfo!.hasInstaller)
                     ElevatedButton.icon(
                       onPressed: _downloadAndInstall,
                       icon: const Icon(Icons.download_rounded, size: 18),
                       label: const Text('Download & Install'),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Installer (.exe) belum diunggah ke GitHub untuk versi ini.',
+                              style: GoogleFonts.inter(fontSize: 11, color: Colors.orange),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                 ] else
                   ElevatedButton.icon(

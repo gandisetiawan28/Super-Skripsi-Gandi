@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'api_key_service.dart';
 import 'vector_store_service.dart';
+import '../constants/app_constants.dart';
 
 typedef LogCallback = void Function(String level, String message);
 
@@ -108,7 +109,7 @@ class LocalServerService {
     request.response.write(jsonEncode({
       'status': 'ok',
       'server': 'Super Skripsi Gandi Manager',
-      'version': '1.0.0',
+      'version': AppConstants.currentVersion,
       'port': port,
       'uptime': DateTime.now().toIso8601String(),
     }));

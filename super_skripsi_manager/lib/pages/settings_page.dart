@@ -11,6 +11,7 @@ import '../providers/onboarding_provider.dart';
 import '../services/device_info_service.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import '../constants/app_constants.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -181,7 +182,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           ),
                         ),
                         Text(
-                          'Version 1.0.0',
+                          'Version ${AppConstants.currentVersion}',
                           style: GoogleFonts.inter(
                             fontSize: 13,
                             color: GlassmorphismTheme.textSecondary,

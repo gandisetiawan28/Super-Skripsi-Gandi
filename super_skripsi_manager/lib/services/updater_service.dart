@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import '../constants/app_constants.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class UpdaterService {
-  // URL Vercel asli Anda yang sudah LIVE
-  static const String _vercelUrl = 'https://super-skripsi-gandi.vercel.app';
-  static const String _appSecretKey = 'SuperGandi2024'; // Harus sama dengan di Vercel
-  static const String _currentVersion = '1.0.0';
+  static const String _vercelUrl = AppConstants.vercelUrl;
+  static const String _appSecretKey = AppConstants.appSecretKey;
+  static const String _currentVersion = AppConstants.currentVersion;
 
   /// Check Vercel for latest release
   Future<UpdateInfo?> checkForUpdate() async {

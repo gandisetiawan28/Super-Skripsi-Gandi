@@ -9,7 +9,7 @@
   <Version>1.0.0.0</Version>
   <ProviderName>Super Skripsi Gandi</ProviderName>
   <DefaultLocale>id-ID</DefaultLocale>
-  <DisplayName DefaultValue="Super Skripsi Gandi" />
+  <DisplayName DefaultValue="Super Skripsi Gandi Manager" />
   <Description DefaultValue="Asisten penelitian pintar dengan AI untuk penulisan akademik." />
   <IconUrl DefaultValue="https://localhost:3005/assets/icon-32.png" />
   <HighResolutionIconUrl DefaultValue="https://localhost:3005/assets/icon-64.png" />
@@ -85,7 +85,7 @@
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3005/taskpane.html" />
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Super Skripsi Gandi" />
+        <bt:String id="GetStarted.Title" DefaultValue="Super Skripsi Gandi Manager" />
         <bt:String id="CommandsGroup.Label" DefaultValue="Skripsi Gandi" />
         <bt:String id="TaskpaneButton.Label" DefaultValue="Super Skripsi" />
       </bt:ShortStrings>

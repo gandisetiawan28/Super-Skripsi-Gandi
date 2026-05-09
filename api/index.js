@@ -9,13 +9,38 @@ export default async function handler(req, res) {
   const APP_SECRET_KEY = process.env.APP_SECRET_KEY; // Key rahasia agar hanya aplikasi Anda yang bisa akses
 
   // 2. Keamanan: Cek apakah request memiliki key yang benar
-  const clientKey = req.headers['x-app-key'];
+  const clientKey = req.headers['x-app-key'] || req.query.key;
   if (APP_SECRET_KEY && clientKey !== APP_SECRET_KEY) {
     return res.status(401).json({ error: 'Unauthorized: Invalid App Key' });
   }
 
   try {
-    // 3. Ambil data release terbaru dari GitHub API
+    // 4. JIKA REQUEST ADALAH DOWNLOAD (PROXY)
+    const { action, asset_id } = req.query;
+    if (action === 'download' && asset_id) {
+      const assetResponse = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/assets/${asset_id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${GITHUB_TOKEN}`,
+            'Accept': 'application/octet-stream',
+          },
+        }
+      );
+
+      if (!assetResponse.ok) {
+        return res.status(assetResponse.status).json({ error: 'Failed to download asset from GitHub' });
+      }
+
+      // Kirim file sebagai stream agar hemat memori
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename=SuperSkripsi_Setup.exe`);
+      
+      const arrayBuffer = await assetResponse.arrayBuffer();
+      return res.send(Buffer.from(arrayBuffer));
+    }
+
+    // 5. REQUEST BIASA: Cek Release Terbaru
     const response = await fetch(
       `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`,
       {
@@ -36,15 +61,20 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // 4. Sederhanakan data untuk dikirim ke Flutter
+    // Sederhanakan data untuk dikirim ke Flutter
+    // Kita buat URL download yang mengarah kembali ke Vercel ini (Proxy)
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers.host;
+    const baseUrl = `${protocol}://${host}/api`;
+
     const updateInfo = {
       version: data.tag_name.replace('v', ''),
       notes: data.body,
       published_at: data.published_at,
       assets: data.assets.map(asset => ({
         name: asset.name,
-        // Kita beri URL proxy agar user bisa download file dari repo private via Vercel
-        download_url: asset.browser_download_url, 
+        // URL Proxy: agar aplikasi mendownload lewat Vercel (yang punya Token)
+        download_url: `${baseUrl}?action=download&asset_id=${asset.id}&key=${APP_SECRET_KEY}`, 
         size: asset.size
       }))
     };

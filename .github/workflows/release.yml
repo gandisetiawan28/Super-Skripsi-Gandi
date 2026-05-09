@@ -56,20 +56,6 @@ jobs:
             /DMyAppVersion="${{ env.VERSION }}" `
             "super_skripsi_manager\windows\installer\super_skripsi_setup.iss"
 
-      - name: Check if Release Exists
-        id: check_release
-        shell: pwsh
-        run: |
-          $tag = "v${{ env.VERSION }}"
-          try {
-            gh release view $tag
-            echo "exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          } catch {
-            echo "exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:

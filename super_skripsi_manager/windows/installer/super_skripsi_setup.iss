@@ -2,7 +2,7 @@
 ; Menangani instalasi aplikasi, Python, dan Pustaka AI secara otomatis
 
 #define MyAppName "Super Skripsi Gandi"
-#define MyAppVersion "1.0.0"
+; #define MyAppVersion "1.0.0"  <-- Dihapus agar bisa diisi otomatis oleh GitHub Action
 #define MyAppPublisher "Gandi Setiawan"
 #define MyAppExeName "super_skripsi_manager.exe"
 #define BuildFolder "..\..\build\windows\x64\runner\Release"

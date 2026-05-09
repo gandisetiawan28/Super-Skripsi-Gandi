@@ -17,8 +17,8 @@ class DeviceInfoService {
         rawId = "${webInfo.vendor}${webInfo.userAgent}${webInfo.hardwareConcurrency}";
       } else if (Platform.isWindows) {
         final windowsInfo = await _deviceInfo.windowsInfo;
-        // Gunakan kombinasi nama komputer, user, dan jumlah core sebagai ID unik
-        rawId = "${windowsInfo.computerName}${windowsInfo.numberOfCores}${windowsInfo.systemMemoryInMegabytes}";
+        // deviceId di Windows mengambil Machine GUID dari Registry (Sangat Unik)
+        rawId = windowsInfo.deviceId;
       } else if (Platform.isAndroid) {
         final androidInfo = await _deviceInfo.androidInfo;
         rawId = androidInfo.id; // Android ID

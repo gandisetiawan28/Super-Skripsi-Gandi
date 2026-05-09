@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/license_service.dart';
 import '../services/license_validation_service.dart';
@@ -41,7 +42,7 @@ class LicenseNotifier extends StateNotifier<AsyncValue<LicenseModel?>> {
 
   void _startPeriodicValidation() {
     _validationTimer?.cancel();
-    // Cek setiap 5 menit (300 detik)
+    // Cek setiap 5 menit (300 detik) - Jangan terlalu sering agar tidak kena rate limit
     _validationTimer = Timer.periodic(const Duration(minutes: 5), (_) => _checkCurrentStatus());
   }
 
@@ -55,7 +56,10 @@ class LicenseNotifier extends StateNotifier<AsyncValue<LicenseModel?>> {
         // Jika tidak valid, lempar ke login
         logout();
       }
-    } catch (_) {}
+    } catch (e) {
+      // Diamkan error jika hanya masalah rate limit atau koneksi di background
+      debugPrint('Background license check skip: $e');
+    }
   }
 
   Future<void> _loadCached() async {

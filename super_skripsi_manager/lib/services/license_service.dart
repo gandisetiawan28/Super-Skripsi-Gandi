@@ -37,19 +37,6 @@ class LicenseService {
 
   /// Memvalidasi lisensi ke Cloud (Google Sheets via Apps Script)
   Future<LicenseModel?> validateLicense(String licenseKey, String name) async {
-    // ── Hardcoded Admin Bypass ──
-    if (name == 'Gandi Setiawan' && licenseKey == '@Gandisetiawan') {
-      final adminLicense = LicenseModel(
-        userName: 'Gandi Setiawan',
-        deviceId: 'admin_device',
-        key: '@Gandisetiawan',
-        status: 'aktif',
-        expiryDate: DateTime.now().add(const Duration(days: 3650)), // 10 years
-        lastValidated: DateTime.now(),
-      );
-      await _cacheLicense(adminLicense);
-      return adminLicense;
-    }
 
     try {
       final result = await _remoteApi.activate(licenseKey);
@@ -86,9 +73,6 @@ class LicenseService {
 
   /// Memvalidasi ulang lisensi yang sudah tersimpan (untuk Background Check)
   Future<bool> reValidateLicense(LicenseModel license) async {
-    // Admin bypass
-    if (license.key == '@Gandisetiawan') return true;
-
     try {
       final result = await _remoteApi.validate(license.key);
       

@@ -45,6 +45,7 @@ class ServerNotifier extends StateNotifier<ServerState> {
     _server = LocalServerService(apiKeyService, vectorStore);
     
     void handleLog(String level, String message) {
+      if (!mounted) return;
       final newLogs = [...state.logs, '[$level] $message'];
       if (newLogs.length > 300) {
         state = state.copyWith(logs: newLogs.sublist(newLogs.length - 300));
@@ -60,8 +61,10 @@ class ServerNotifier extends StateNotifier<ServerState> {
   Future<void> startServer({int? port}) async {
     try {
       await _server.start(port: port ?? LocalServerService.defaultPort);
+      if (!mounted) return;
       state = state.copyWith(isRunning: true, port: _server.port);
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         isRunning: false,
         logs: [...state.logs, '[error] Failed to start: $e'],
@@ -71,10 +74,12 @@ class ServerNotifier extends StateNotifier<ServerState> {
 
   Future<void> stopServer() async {
     await _server.stop();
+    if (!mounted) return;
     state = state.copyWith(isRunning: false);
   }
 
   void clearLogs() {
+    if (!mounted) return;
     state = state.copyWith(logs: []);
   }
 

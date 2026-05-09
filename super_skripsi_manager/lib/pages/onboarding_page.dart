@@ -85,34 +85,21 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> with SingleTick
             photoUrl: photoUrl,
           );
           _nameController.text = name;
-        } else {
-          // Fallback if userinfo fails
-          ref.read(onboardingProvider.notifier).updateGoogleProfile(
-            name: 'User Skripsi',
-            email: '',
-            photoUrl: null,
-          );
-          _nameController.text = 'User Skripsi';
         }
-        
-        // Jeda singkat untuk Windows session (Dipindahkan ke luar blok agar selalu jalan)
-        await Future.delayed(const Duration(milliseconds: 800));
-        
-        // Cek apakah ada data lama di Drive
-        try {
-          final driveFiles = await ref.read(googleDriveServiceProvider).listAppDataFiles();
-          if (driveFiles.any((f) => f.name == 'vector_store.db')) {
-            _showRestoreDialog();
-          } else {
-            _proceedToNextStep();
-          }
-        } catch (e) {
-          debugPrint('Drive check failed: $e');
+
+        // LANGSUNG PINDAH HALAMAN (Jangan menunggu Drive)
+        if (mounted) {
           _proceedToNextStep();
         }
+        
+        // Cek Drive di latar belakang (Background)
+        _checkDriveForBackup();
+        
+      } else {
+        debugPrint('Google Sign-In aborted');
       }
     } catch (error) {
-      debugPrint('Google Sign-In Error: $error');
+      debugPrint('Google Sign-In Global Error: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal login Google: $error')),
@@ -120,6 +107,20 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> with SingleTick
       }
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
+    }
+  }
+
+  Future<void> _checkDriveForBackup() async {
+    try {
+      await Future.delayed(const Duration(milliseconds: 1000));
+      if (!mounted) return;
+      
+      final driveFiles = await ref.read(googleDriveServiceProvider).listAppDataFiles();
+      if (mounted && driveFiles.any((f) => f.name == 'vector_store.db')) {
+        _showRestoreDialog();
+      }
+    } catch (e) {
+      debugPrint('Background Drive check failed: $e');
     }
   }
 
@@ -157,9 +158,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> with SingleTick
               ),
               ElevatedButton(
                 onPressed: () async {
+                  if (!mounted) return;
                   setState(() => isRestoring = true);
                   await ref.read(syncProvider.notifier).performRestore();
-                  if (context.mounted) {
+                  if (mounted && context.mounted) {
                     Navigator.pop(context);
                     _proceedToNextStep();
                   }

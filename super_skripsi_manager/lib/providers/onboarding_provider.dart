@@ -112,13 +112,13 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     await box.put('googleName', name);
     await box.put('googleEmail', email);
     if (photoUrl != null) await box.put('googlePhotoUrl', photoUrl);
-    await box.put('isCompleted', true);
+    // REMOVED: await box.put('isCompleted', true); // BUG: Ini memicu logout otomatis di AppGate karena lisensi belum ada
 
     state = state.copyWith(
       googleName: name,
       googleEmail: email,
       googlePhotoUrl: photoUrl,
-      isCompleted: true,
+      // REMOVED: isCompleted: true,
     );
   }
 

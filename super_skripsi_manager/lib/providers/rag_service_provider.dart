@@ -58,10 +58,13 @@ class RagStateNotifier extends StateNotifier<RagState> {
 
   /// Auto-start service dan update state secara berkala
   Future<void> initialize({String? userId}) async {
+    if (!mounted) return;
     state = const RagState(status: RagStatus.starting);
 
     // Coba start service dengan ID User unik
     await _service.startService(userId: userId);
+    
+    if (!mounted) return;
 
     // Update status
     await _refreshStatus();
@@ -69,6 +72,7 @@ class RagStateNotifier extends StateNotifier<RagState> {
 
   Future<void> _refreshStatus() async {
     final healthData = await _service.getStatus();
+    if (!mounted) return;
     if (healthData == null) {
       state = const RagState(status: RagStatus.unavailable);
       return;

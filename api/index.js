@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   // 1. Ambil Token & Config dari Environment Variables di Vercel
   const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
   const REPO_OWNER = process.env.REPO_OWNER || 'gandisetiawan28';
-  const REPO_NAME = process.env.REPO_NAME || 'super-skripsi-gandi';
+  const REPO_NAME = process.env.REPO_NAME || 'Super_Skripsi_Gandi';
   const APP_SECRET_KEY = process.env.APP_SECRET_KEY; // Key rahasia agar hanya aplikasi Anda yang bisa akses
 
   // 2. Keamanan: Cek apakah request memiliki key yang benar

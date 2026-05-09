@@ -32,7 +32,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.19.0' # Sesuaikan dengan versi Anda jika perlu
+          # Kita hapus versi spesifik agar selalu menggunakan Flutter terbaru yang mendukung Dart 3.5.0+
 
       - name: Enable Windows Build
         run: flutter config --enable-windows-desktop

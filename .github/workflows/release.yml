@@ -1,4 +1,4 @@
-name: Build and Auto-Release
+name: Build and Auto-Release (Public Distribution)
 
 on:
   push:
@@ -38,14 +38,6 @@ jobs:
       - name: Enable Windows Build
         run: flutter config --enable-windows-desktop
 
-      - name: Cache Pub Dependencies
-        uses: actions/cache@v4
-        with:
-          path: C:\Users\runneradmin\AppData\Local\Pub\Cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-
-
       - name: Get Dependencies
         run: |
           cd super_skripsi_manager
@@ -59,26 +51,28 @@ jobs:
       - name: Compile Inno Setup
         shell: pwsh
         run: |
-          # Jalankan ISCC (Inno Setup Compiler)
-          # Kita timpa MyAppVersion dengan versi dari Dart
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
             /DMyAppVersion="${{ env.VERSION }}" `
             "super_skripsi_manager\windows\installer\super_skripsi_setup.iss"
 
-      - name: Create or Update GitHub Release
+      # --- BAGIAN PENTING: RILIS KE REPO PUBLIK ---
+      - name: Create Release in Public Repository
         uses: softprops/action-gh-release@v2
         with:
+          repository: gandisetiawan28/Super-Skripsi-Gandi
+          token: ${{ secrets.PUBLIC_REPO_TOKEN }}
           tag_name: v${{ env.VERSION }}
           name: Release v${{ env.VERSION }}
           body: |
-            Automated Build & Release for version ${{ env.VERSION }}
+            ## Super Skripsi Gandi - Official Release
+            Selamat! Versi terbaru v${{ env.VERSION }} telah tersedia.
             
-            Changes:
-            - Fully automated build and installer creation.
-            - All components (Manager, Extension, Word Add-in) synchronized.
+            **Update Utama:**
+            - Peningkatan stabilitas sistem.
+            - Sinkronisasi otomatis antar platform.
+            
+            Silakan unduh installer di bawah ini.
           draft: false
           prerelease: false
           files: |
             super_skripsi_manager/windows/installer/Output/SuperSkripsi_Setup_v${{ env.VERSION }}.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,7 +2,9 @@
 ; Menangani instalasi aplikasi, Python, dan Pustaka AI secara otomatis
 
 #define MyAppName "Super Skripsi Gandi"
-; #define MyAppVersion "1.0.0"  <-- Dihapus agar bisa diisi otomatis oleh GitHub Action
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "Gandi Setiawan"
 #define MyAppExeName "super_skripsi_manager.exe"
 #define BuildFolder "..\..\build\windows\x64\runner\Release"
@@ -60,6 +62,9 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 ; 2. Instalasi Pustaka AI (Pip Requirements)
 Filename: "cmd.exe"; Parameters: "/c python -m pip install --upgrade pip && python -m pip install -r ""{app}\rag\requirements.txt"""; StatusMsg: "Menginstal Pustaka AI (Ini mungkin memakan waktu beberapa menit)..."; Flags: runhidden
+
+; 3. Auto-Restart Aplikasi
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait skipfs
 
 [Code]
 function NeedsPython(): Boolean;

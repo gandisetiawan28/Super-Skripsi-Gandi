@@ -99,7 +99,12 @@ class UpdaterService {
   /// Execute installer
   Future<void> executeInstaller(String filePath) async {
     if (filePath.endsWith('.exe')) {
-      await Process.start(filePath, [], mode: ProcessStartMode.detached);
+      // Jalankan installer dalam mode senyap (silent)
+      await Process.start(
+        filePath,
+        ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CLOSEAPPLICATIONS'],
+        mode: ProcessStartMode.detached,
+      );
     } else if (filePath.endsWith('.msix')) {
       await launchUrl(Uri.file(filePath));
     }

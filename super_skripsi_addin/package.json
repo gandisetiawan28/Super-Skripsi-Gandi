@@ -1,6 +1,6 @@
 {
   "name": "super-skripsi-addin",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Super Skripsi Gandi Word Add-in - Smart Research Assistant",
   "main": "src/taskpane/index.jsx",
   "scripts": {

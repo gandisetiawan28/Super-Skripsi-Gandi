@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - 'super_skripsi_manager/pubspec.yaml'
       - 'super_skripsi_manager/lib/constants/app_constants.dart'
 
 jobs:
@@ -17,12 +18,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get version from AppConstants
+      - name: Get version from pubspec.yaml
         id: get_version
         shell: pwsh
         run: |
-          $content = Get-Content super_skripsi_manager/lib/constants/app_constants.dart -Raw
-          if ($content -match "currentVersion = '(?<version>.*?)'") {
+          $pubspec = Get-Content super_skripsi_manager/pubspec.yaml -Raw
+          if ($pubspec -match "version:\s*(?<version>[\d\.]+)") {
             $version = $Matches['version']
             echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
             echo "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -107,6 +108,7 @@ jobs:
           name: Release v${{ env.VERSION }} (Internal Archive)
           body: |
             Build otomatis (Portable Python Included - Optimized).
+          fail_on_unmatched_files: true
           files: |
             super_skripsi_manager/windows/installer/Output/SuperSkripsi_Setup_v${{ env.VERSION }}.exe
 
@@ -124,6 +126,7 @@ jobs:
             TIDAK PERLU instal apa pun lagi. Langsung jalan!
           draft: false
           prerelease: false
+          fail_on_unmatched_files: true
           files: |
             super_skripsi_manager/windows/installer/Output/SuperSkripsi_Setup_v${{ env.VERSION }}.exe
 

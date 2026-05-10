@@ -139,29 +139,29 @@ class GlassmorphismTheme {
           ),
         ),
       ),
-      dialogTheme: DialogTheme(
-        backgroundColor: Colors.white.withOpacity(0.9),
+      dialogTheme: const DialogTheme(
+        backgroundColor: Colors.white70,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusLarge),
-          side: BorderSide(color: Colors.white.withOpacity(0.3)),
+          borderRadius: BorderRadius.all(Radius.circular(radiusLarge)),
+          side: BorderSide(color: Colors.white30),
         ),
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
           color: textPrimary,
         ),
-        contentTextStyle: GoogleFonts.inter(
+        contentTextStyle: TextStyle(
           fontSize: 14,
           color: textPrimary,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: const CardTheme(
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusMedium),
+          borderRadius: BorderRadius.all(Radius.circular(radiusMedium)),
         ),
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white70,
       ),
     );
   }

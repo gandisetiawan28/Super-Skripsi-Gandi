@@ -1,6 +1,6 @@
 class AppConstants {
   // === VERSIONING & UPDATER CONFIG ===
-  static const String currentVersion = '1.1.16';
+  static const String currentVersion = '1.1.17';
   static const String vercelUrl = 'https://super-skripsi-gandi.vercel.app';
   static const String appSecretKey = 'SuperGandi2024'; // Harus sama dengan di Vercel
   

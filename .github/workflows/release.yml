@@ -48,7 +48,16 @@ jobs:
           cd super_skripsi_manager
           flutter build windows --release
 
+      # --- CACHE PYTHON PORTABLE ---
+      - name: Cache Portable Python
+        id: cache-python
+        uses: actions/cache@v4
+        with:
+          path: super_skripsi_rag/python_portable
+          key: ${{ runner.os }}-python-portable-${{ hashFiles('super_skripsi_rag/requirements.txt') }}
+
       - name: Setup Portable Python Environment
+        if: steps.cache-python.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $ragDir = "super_skripsi_rag"

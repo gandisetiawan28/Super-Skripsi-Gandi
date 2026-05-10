@@ -43,8 +43,11 @@ export default function App() {
       {/* Header */}
       <header className="app-header">
         <div className="logo-section">
-          <div className="logo-icon">S</div>
-          <span className="logo-text">Super Skripsi</span>
+          <img src="assets/icon-32.png" className="logo-icon-img" alt="Logo" />
+          <div className="title-wrapper">
+            <span className="logo-text">Super Skripsi</span>
+            <span className="version-tag">v1.1.5</span>
+          </div>
         </div>
         <div className="header-badges">
           {/* RAG Status Badge */}

@@ -139,7 +139,7 @@ class GlassmorphismTheme {
           ),
         ),
       ),
-      dialogTheme: DialogThemeData(
+      dialogTheme: DialogTheme(
         backgroundColor: Colors.white.withOpacity(0.9),
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -156,7 +156,7 @@ class GlassmorphismTheme {
           color: textPrimary,
         ),
       ),
-      cardTheme: CardThemeData(
+      cardTheme: CardTheme(
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMedium),

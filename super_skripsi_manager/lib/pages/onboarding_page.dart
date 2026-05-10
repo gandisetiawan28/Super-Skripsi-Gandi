@@ -16,6 +16,7 @@ import '../services/updater_service.dart';
 import '../widgets/update_dialog.dart';
 import '../services/device_info_service.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:window_manager/window_manager.dart';
 
 class OnboardingPage extends ConsumerStatefulWidget {
   final VoidCallback onCompleted;
@@ -257,33 +258,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> with SingleTick
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Image.asset('assets/images/logo_nobg.png', height: 32),
-            const SizedBox(width: 12),
-            Text(
-              'Super Skripsi',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.bold,
-                color: GlassmorphismTheme.textPrimary,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'v${AppConstants.currentVersion}',
-              style: GoogleFonts.inter(
-                color: GlassmorphismTheme.textSecondary,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -296,7 +270,71 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> with SingleTick
             ],
           ),
         ),
-        child: Stack(
+        child: Column(
+          children: [
+            // Custom title bar matching MainShell
+            GestureDetector(
+              onPanStart: (_) => windowManager.startDragging(),
+              child: Container(
+                height: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    // macOS-style traffic lights
+                    _TrafficLight(
+                      color: const Color(0xFFFF5F57),
+                      onTap: () => windowManager.close(),
+                    ),
+                    const SizedBox(width: 6),
+                    _TrafficLight(
+                      color: const Color(0xFFFFBD2E),
+                      onTap: () => windowManager.minimize(),
+                    ),
+                    const SizedBox(width: 6),
+                    _TrafficLight(
+                      color: const Color(0xFF28C940),
+                      onTap: () async {
+                        final isMax = await windowManager.isMaximized();
+                        if (isMax) {
+                          windowManager.unmaximize();
+                        } else {
+                          windowManager.maximize();
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      'Super Skripsi Gandi',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: GlassmorphismTheme.textSecondary,
+                      ),
+                    ),
+                    const Spacer(),
+                    // Version badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: GlassmorphismTheme.primaryRed.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: GlassmorphismTheme.primaryRed.withOpacity(0.1), width: 1),
+                      ),
+                      child: Text(
+                        'v${AppConstants.currentVersion}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: GlassmorphismTheme.primaryRed,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: Stack(
           children: [
             // Background decorations
             Positioned(
@@ -357,7 +395,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> with SingleTick
           ],
         ),
       ),
-    );
+    ],
+  ),
+),
+);
   }
 
   Widget _buildProgressBar(int step) {
@@ -406,7 +447,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> with SingleTick
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontSize: 14, color: GlassmorphismTheme.textSecondary),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 24),
           
           SizedBox(
             width: double.infinity,
@@ -453,7 +494,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> with SingleTick
             'Verifikasi akun untuk membuka akses penuh.',
             style: GoogleFonts.inter(fontSize: 13, color: GlassmorphismTheme.textSecondary),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
           
           TextField(
             controller: _nameController,
@@ -662,6 +703,43 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> with SingleTick
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TrafficLight extends StatefulWidget {
+  final Color color;
+  final VoidCallback onTap;
+
+  const _TrafficLight({required this.color, required this.onTap});
+
+  @override
+  State<_TrafficLight> createState() => _TrafficLightState();
+}
+
+class _TrafficLightState extends State<_TrafficLight> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: widget.color,
+            boxShadow: _hovered
+                ? [BoxShadow(color: widget.color.withOpacity(0.5), blurRadius: 6)]
+                : null,
+          ),
+        ),
       ),
     );
   }

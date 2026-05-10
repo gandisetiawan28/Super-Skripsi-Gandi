@@ -124,14 +124,14 @@ class ApiKeyService {
     await fixBadUrls(); 
     final keys = await getAllKeysMap();
     
+    // Hapus CORE API (Legacy) jika masih ada
+    if (keys.containsKey('CORE API')) {
+      await deleteProvider('CORE API');
+    }
+
     // Seed Localhost
     if (!keys.containsKey('Localhost') || keys['Localhost']!.isEmpty) {
       await saveKey('Localhost', 'Gemini Flow (Default)', 'http://localhost:3000');
-    }
-
-    // Seed CORE API
-    if (!keys.containsKey('CORE API') || keys['CORE API']!.isEmpty) {
-      await saveKey('CORE API', 'Default Key', 'SsBYVZwqjx9WvGCQ7lTp2nEyguHNRa5F');
     }
   }
 

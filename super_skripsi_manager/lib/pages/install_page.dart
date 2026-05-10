@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path/path.dart' as p;
@@ -9,15 +10,37 @@ import '../widgets/extension_installer_terminal.dart';
 class InstallPage extends StatelessWidget {
   const InstallPage({super.key});
 
+  Future<String?> _findScript(String subDir, String fileName) async {
+    final exePath = Platform.resolvedExecutable;
+    final appDir = p.dirname(exePath);
+
+    // 1. Cek di folder exe (Production/Bundle)
+    final prodPath = p.join(appDir, subDir, fileName);
+    if (await File(prodPath).exists()) return prodPath;
+
+    // 2. Jika tidak ada, coba cari di folder source (Development/Debug)
+    // Asumsi struktur: root/super_skripsi_manager/build/windows/x64/runner/Debug/exe
+    // Maka 5 level ke atas adalah super_skripsi_manager
+    final projectRoot = p.join(appDir, '..', '..', '..', '..', '..');
+    final workspaceRoot = p.join(projectRoot, '..');
+
+    if (subDir == 'addin') {
+      final devPath = p.join(projectRoot, 'assets', 'scripts', fileName);
+      if (await File(devPath).exists()) return devPath;
+    } else if (subDir == 'extension') {
+      final devPath = p.join(workspaceRoot, 'super_skripsi_extension', fileName);
+      if (await File(devPath).exists()) return devPath;
+    }
+
+    return null;
+  }
+
   Future<void> _runInstaller(BuildContext context) async {
     try {
-      // Path relatif terhadap file .exe yang sedang berjalan
-      final exePath = Platform.resolvedExecutable;
-      final appDir = p.dirname(exePath);
-      final scriptPath = p.join(appDir, 'addin', 'install_addin.bat');
+      final scriptPath = await _findScript('addin', 'install_addin.bat');
 
-      if (!await File(scriptPath).exists()) {
-        throw Exception('Installer script not found at $scriptPath');
+      if (scriptPath == null) {
+        throw Exception('Installer script not found. Pastikan folder "addin" ada di samping file .exe atau Anda menjalankan dari source dengan struktur folder yang benar.');
       }
 
       // On Windows, use 'cmd /c start' to open in a new visible window
@@ -41,12 +64,10 @@ class InstallPage extends StatelessWidget {
 
   Future<void> _runExtensionInstaller(BuildContext context) async {
     try {
-      final exePath = Platform.resolvedExecutable;
-      final appDir = p.dirname(exePath);
-      final scriptPath = p.join(appDir, 'extension', 'One-Click-Install.bat');
+      final scriptPath = await _findScript('extension', 'One-Click-Install.bat');
 
-      if (!await File(scriptPath).exists()) {
-        throw Exception('Extension installer script not found at $scriptPath');
+      if (scriptPath == null) {
+        throw Exception('Extension installer script not found.');
       }
 
       await Process.run('cmd', ['/c', 'start', '', scriptPath]);

@@ -146,7 +146,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           const SizedBox(height: 24),
           _buildProfileSection(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // App Info
           GlassCard(
@@ -169,8 +169,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.school_rounded,
-                          color: Colors.white, size: 24),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Image.asset(
+                          'assets/images/logo_nobg.png',
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Column(

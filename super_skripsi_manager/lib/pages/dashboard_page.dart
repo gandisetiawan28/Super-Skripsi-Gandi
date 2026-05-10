@@ -54,6 +54,7 @@ class DashboardPage extends ConsumerWidget {
                   delay: const Duration(milliseconds: 100),
                 ),
               ),
+              const SizedBox(width: 12),
               Expanded(
                 child: _StatCard(
                   icon: Icons.vpn_key_rounded,
@@ -63,6 +64,7 @@ class DashboardPage extends ConsumerWidget {
                   delay: const Duration(milliseconds: 200),
                 ),
               ),
+              const SizedBox(width: 12),
               Expanded(
                 child: _StatCard(
                   icon: Icons.dns_rounded,
@@ -321,6 +323,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassCard(
+      margin: EdgeInsets.zero,
       elevated: true,
       entranceDelay: delay,
       child: Column(

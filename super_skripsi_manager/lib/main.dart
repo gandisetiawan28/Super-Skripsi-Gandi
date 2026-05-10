@@ -295,6 +295,12 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
                       },
                     ),
                     const SizedBox(width: 16),
+                    Image.asset(
+                      'assets/images/logo_nobg.png',
+                      height: 18,
+                      color: GlassmorphismTheme.primaryRed,
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       'Super Skripsi Gandi',
                       style: TextStyle(
@@ -425,21 +431,18 @@ class _RagStatusBadgeState extends ConsumerState<_RagStatusBadge> {
     final ragState = ref.watch(ragStateProvider);
 
     Color dotColor;
-    Color bgColor;
     switch (ragState.status) {
       case RagStatus.ready:
-        dotColor = const Color(0xFF4ADE80);  // Hijau
-        bgColor = const Color(0xFF166534).withOpacity(0.6);
+        dotColor = const Color(0xFF28C940);
         break;
       case RagStatus.loading:
       case RagStatus.starting:
-        dotColor = const Color(0xFFFBBF24);  // Kuning
-        bgColor = const Color(0xFF78350F).withOpacity(0.6);
+        dotColor = const Color(0xFFFFBD2E);
         break;
       default:
-        dotColor = const Color(0xFFEF4444);  // Merah untuk offline
-        bgColor = dotColor.withOpacity(0.1);
+        dotColor = const Color(0xFFFF5F57);
     }
+    final Color bgColor = dotColor.withOpacity(0.12);
 
     return Tooltip(
       message: ragState.tooltipLabel,
@@ -449,7 +452,7 @@ class _RagStatusBadgeState extends ConsumerState<_RagStatusBadge> {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: dotColor.withOpacity(0.4), width: 1),
+          border: Border.all(color: dotColor.withOpacity(0.2), width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -491,10 +494,8 @@ class _WordStatusBadge extends ConsumerWidget {
     final serverState = ref.watch(serverProvider);
     
     final bool isOnline = serverState.isRunning;
-    final Color dotColor = isOnline ? const Color(0xFF4ADE80) : const Color(0xFFEF4444);
-    final Color bgColor = isOnline 
-        ? const Color(0xFF166534).withOpacity(0.6) 
-        : dotColor.withOpacity(0.1);
+    final Color dotColor = isOnline ? const Color(0xFF28C940) : const Color(0xFFFF5F57);
+    final Color bgColor = dotColor.withOpacity(0.12);
 
     return Tooltip(
       message: isOnline 
@@ -506,7 +507,7 @@ class _WordStatusBadge extends ConsumerWidget {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: dotColor.withOpacity(0.4), width: 1),
+          border: Border.all(color: dotColor.withOpacity(0.2), width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -552,10 +553,8 @@ class _ExtensionStatusBadge extends StatelessWidget {
         final bool hasProviders = stats.isOnline && stats.activeProviders > 0;
         final bool isFullyOnline = isServerRunning && hasProviders;
         
-        final Color dotColor = isFullyOnline ? const Color(0xFF4ADE80) : const Color(0xFFEF4444);
-        final Color bgColor = isFullyOnline 
-            ? const Color(0xFF166534).withOpacity(0.6) 
-            : dotColor.withOpacity(0.1);
+        final Color dotColor = isFullyOnline ? const Color(0xFF28C940) : const Color(0xFFFF5F57);
+        final Color bgColor = dotColor.withOpacity(0.12);
 
         String label = '🧩 Offline';
         String tooltip = 'Extension Bridge mati — Browser Extension tidak dapat mengakses data';
@@ -578,7 +577,7 @@ class _ExtensionStatusBadge extends StatelessWidget {
             decoration: BoxDecoration(
               color: bgColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: dotColor.withOpacity(0.4), width: 1),
+              border: Border.all(color: dotColor.withOpacity(0.2), width: 1),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -625,19 +624,19 @@ class _SyncStatusBadge extends ConsumerWidget {
     IconData icon;
 
     switch (syncState.status) {
-      case SyncStatus.syncing:
-        dotColor = Colors.orange;
-        label = syncState.message ?? 'Syncing...';
-        icon = Icons.sync_rounded;
-        break;
       case SyncStatus.error:
-        dotColor = Colors.red;
+        dotColor = const Color(0xFFFF5F57);
         label = syncState.message ?? 'Sync Error';
         icon = Icons.cloud_off_rounded;
         break;
+      case SyncStatus.syncing:
+        dotColor = const Color(0xFFFFBD2E);
+        label = syncState.message ?? 'Syncing...';
+        icon = Icons.sync_rounded;
+        break;
       case SyncStatus.success:
       default:
-        dotColor = Colors.green;
+        dotColor = const Color(0xFF28C940);
         label = syncState.message ?? 'Synced';
         icon = Icons.cloud_done_rounded;
         break;
@@ -653,9 +652,9 @@ class _SyncStatusBadge extends ConsumerWidget {
           duration: const Duration(milliseconds: 400),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: dotColor.withOpacity(0.1),
+            color: dotColor.withOpacity(0.12),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: dotColor.withOpacity(0.4), width: 1),
+            border: Border.all(color: dotColor.withOpacity(0.2), width: 1),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

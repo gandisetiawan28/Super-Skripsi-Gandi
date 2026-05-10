@@ -273,7 +273,21 @@ class _BlueprintPageState extends ConsumerState<BlueprintPage> {
               const SizedBox(width: 24),
               Expanded(
                 flex: 2,
-                child: _buildAiConfigCard(blueprint, availableProviders),
+                child: Column(
+                  children: [
+                    _buildAiConfigCard(blueprint, availableProviders),
+                    const SizedBox(height: 16),
+                    _buildSimpleInput(
+                      label: 'Lokasi & Objek',
+                      controller: _lokasiController,
+                      hint: 'Contoh: PT. Maju Jaya, Jakarta...',
+                      icon: Icons.location_on_rounded,
+                      minLines: 1,
+                      maxLines: 5,
+                      onChanged: (val) => ref.read(researchBlueprintProvider.notifier).updateLokasi(val),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -343,6 +357,7 @@ class _BlueprintPageState extends ConsumerState<BlueprintPage> {
 
   Widget _buildAiConfigCard(ResearchBlueprintState state, List<String> providers) {
     return GlassCard(
+      margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -430,6 +445,7 @@ class _BlueprintPageState extends ConsumerState<BlueprintPage> {
 
   Widget _buildGuidelineSection(ResearchBlueprintState state) {
     return GlassCard(
+      margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -523,32 +539,14 @@ class _BlueprintPageState extends ConsumerState<BlueprintPage> {
     final blueprint = ref.watch(researchBlueprintProvider);
     return Column(
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: _buildSimpleInput(
-                label: 'Judul Utama Penelitian',
-                controller: _judulController,
-                hint: 'Masukkan judul skripsi lengkap Anda...',
-                icon: Icons.title_rounded,
-                maxLines: 2,
-                onChanged: (val) => ref.read(researchBlueprintProvider.notifier).updateJudul(val),
-              ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              flex: 2,
-              child: _buildSimpleInput(
-                label: 'Lokasi & Objek',
-                controller: _lokasiController,
-                hint: 'Contoh: PT. Maju Jaya, Jakarta...',
-                icon: Icons.location_on_rounded,
-                onChanged: (val) => ref.read(researchBlueprintProvider.notifier).updateLokasi(val),
-              ),
-            ),
-          ],
+        _buildSimpleInput(
+          label: 'Judul Utama Penelitian',
+          controller: _judulController,
+          hint: 'Masukkan judul skripsi lengkap Anda...',
+          icon: Icons.title_rounded,
+          minLines: 2,
+          maxLines: 5,
+          onChanged: (val) => ref.read(researchBlueprintProvider.notifier).updateJudul(val),
         ),
         const SizedBox(height: 16),
         _buildPopulationSection(blueprint),
@@ -558,6 +556,7 @@ class _BlueprintPageState extends ConsumerState<BlueprintPage> {
 
   Widget _buildPopulationSection(ResearchBlueprintState blueprint) {
     return GlassCard(
+      margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -704,10 +703,12 @@ class _BlueprintPageState extends ConsumerState<BlueprintPage> {
     required TextEditingController controller,
     required String hint,
     required IconData icon,
-    int maxLines = 1,
+    int? minLines,
+    int? maxLines,
     required Function(String) onChanged,
   }) {
     return GlassCard(
+      margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -722,7 +723,8 @@ class _BlueprintPageState extends ConsumerState<BlueprintPage> {
           const SizedBox(height: 12),
           TextField(
             controller: controller,
-            maxLines: maxLines,
+            minLines: minLines ?? 1,
+            maxLines: maxLines ?? 1,
             onChanged: onChanged,
             style: const TextStyle(color: GlassmorphismTheme.textPrimary, fontSize: 14),
             decoration: InputDecoration(
@@ -1060,6 +1062,7 @@ class _ChapterCardState extends ConsumerState<_ChapterCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: GlassCard(
+        margin: EdgeInsets.zero,
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [

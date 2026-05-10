@@ -9,6 +9,10 @@ EXTENSION_MANIFEST = os.path.join(ROOT_DIR, 'super_skripsi_extension', 'manifest
 ADDIN_PACKAGE = os.path.join(ROOT_DIR, 'super_skripsi_addin', 'package.json')
 ADDIN_MANIFEST = os.path.join(ROOT_DIR, 'super_skripsi_addin', 'manifest.xml')
 
+# UI Paths for Version Display
+EXTENSION_POPUP = os.path.join(ROOT_DIR, 'super_skripsi_extension', 'popup.html')
+ADDIN_APP_JSX = os.path.join(ROOT_DIR, 'super_skripsi_addin', 'src', 'taskpane', 'App.jsx')
+
 def get_constants():
     constants = {}
     if not os.path.exists(APP_CONSTANTS_PATH):
@@ -80,6 +84,27 @@ def update_addin_manifest(constants):
         f.write(content)
     print(f"Updated Add-in XML: {xml_version}")
 
+def update_ui_versions(constants):
+    v = constants['version']
+    
+    # 1. Extension Popup HTML
+    if os.path.exists(EXTENSION_POPUP):
+        with open(EXTENSION_POPUP, 'r', encoding='utf-8') as f:
+            content = f.read()
+        content = re.sub(r'id="appVersion">v.*?</span>', f'id="appVersion">v{v}</span>', content)
+        with open(EXTENSION_POPUP, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"Updated Extension UI Version: v{v}")
+        
+    # 2. Add-in App.jsx
+    if os.path.exists(ADDIN_APP_JSX):
+        with open(ADDIN_APP_JSX, 'r', encoding='utf-8') as f:
+            content = f.read()
+        content = re.sub(r'className="version-tag">v.*?</span>', f'className="version-tag">v{v}</span>', content)
+        with open(ADDIN_APP_JSX, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"Updated Add-in UI Version: v{v}")
+
 if __name__ == "__main__":
     print("Synchronizing versions across projects...")
     consts = get_constants()
@@ -87,6 +112,7 @@ if __name__ == "__main__":
         update_extension(consts)
         update_addin_package(consts)
         update_addin_manifest(consts)
-        print("\nAll versions are now in sync with AppConstants.dart!")
+        update_ui_versions(consts)
+        print("\nAll versions and UI displays are now in sync with AppConstants.dart!")
     else:
         print("Error: Could not read AppConstants.dart or version not found.")

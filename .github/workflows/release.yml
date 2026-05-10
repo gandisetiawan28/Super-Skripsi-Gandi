@@ -1,4 +1,4 @@
-name: Build and Auto-Release (Public Distribution)
+name: Build and Auto-Release (Dual Distribution)
 
 on:
   push:
@@ -48,6 +48,14 @@ jobs:
           cd super_skripsi_manager
           flutter build windows --release
 
+      - name: Download Python Installer for Bundling
+        shell: pwsh
+        run: |
+          $url = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
+          $outPath = "super_skripsi_manager\windows\installer\python-3.11.9-amd64.exe"
+          Invoke-WebRequest -Uri $url -OutFile $outPath
+          echo "Python installer downloaded successfully."
+
       - name: Compile Inno Setup
         shell: pwsh
         run: |
@@ -55,7 +63,19 @@ jobs:
             /DMyAppVersion="${{ env.VERSION }}" `
             "super_skripsi_manager\windows\installer\super_skripsi_setup.iss"
 
-      # --- BAGIAN PENTING: RILIS KE REPO PUBLIK ---
+      # --- RILIS 1: REPOSITORY PRIVAT (ARSIP INTERNAL) ---
+      - name: Create Release in Private Repository
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }} (Internal Archive)
+          body: |
+            Build otomatis untuk arsip internal.
+            Installer: SuperSkripsi_Setup_v${{ env.VERSION }}.exe
+          files: |
+            super_skripsi_manager/windows/installer/Output/SuperSkripsi_Setup_v${{ env.VERSION }}.exe
+
+      # --- RILIS 2: REPOSITORY PUBLIK (DISTRIBUSI USER) ---
       - name: Create Release in Public Repository
         uses: softprops/action-gh-release@v2
         with:
@@ -70,9 +90,29 @@ jobs:
             **Update Utama:**
             - Peningkatan stabilitas sistem.
             - Sinkronisasi otomatis antar platform.
+            - Bundling Python & AI Library otomatis.
             
             Silakan unduh installer di bawah ini.
           draft: false
           prerelease: false
           files: |
             super_skripsi_manager/windows/installer/Output/SuperSkripsi_Setup_v${{ env.VERSION }}.exe
+
+      # --- SYNC README KE REPO PUBLIK ---
+      - name: Sync README to Public Repo
+        shell: pwsh
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Clone repo publik ke folder sementara
+          git clone https://x-access-token:${{ secrets.PUBLIC_REPO_TOKEN }}@github.com/gandisetiawan28/Super-Skripsi-Gandi.git public_repo
+          
+          # Salin README dari repo privat ke repo publik
+          copy-item README.md public_repo/README.md -Force
+          
+          # Push perubahan ke repo publik
+          cd public_repo
+          git add README.md
+          git commit -m "docs: sync README from private repo (v${{ env.VERSION }})" || echo "No changes to README"
+          git push origin main

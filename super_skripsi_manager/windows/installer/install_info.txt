@@ -1,0 +1,14 @@
+Super Skripsi Gandi - Persiapan Instalasi
+==========================================
+
+Aplikasi ini menggunakan teknologi AI (Artificial Intelligence) tingkat tinggi. 
+Untuk memastikan semua fitur berjalan lancar, proses instalasi akan:
+
+1. Menginstal file utama aplikasi.
+2. Memeriksa dan menginstal Lingkungan Python (jika belum ada).
+3. Mengunduh dan memasang Pustaka AI (Requirements).
+
+Proses ini mungkin memakan waktu beberapa menit tergantung pada kecepatan 
+internet Anda. Harap tunggu sampai bar kemajuan selesai sepenuhnya.
+
+Terima kasih telah menggunakan Super Skripsi Gandi!

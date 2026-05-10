@@ -21,6 +21,7 @@ OutputBaseFilename=SuperSkripsi_Setup_v{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+InfoBeforeFile=install_info.txt
 
 ; Version Info
 VersionInfoVersion={#MyAppVersion}
@@ -49,16 +50,16 @@ Source: "..\..\..\super_skripsi_extension\*"; DestDir: "{app}\extension"; Flags:
 ; Folder Python RAG Backend
 Source: "..\..\..\super_skripsi_rag\*"; DestDir: "{app}\rag"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__\*, .venv\*, .git\*"
 
-; 5. Bundling Python Installer (AKTIFKAN JIKA SUDAH ADA FILENYA)
-; Source: "python-3.11-amd64.exe"; DestDir: "{tmp}"; Flags: ignoreversion
+; Bundling Python Installer
+Source: "python-3.11.9-amd64.exe"; DestDir: "{tmp}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-; 1. Instalasi Python (AKTIFKAN JIKA SUDAH ADA FILENYA)
-; Filename: "{tmp}\python-3.11-amd64.exe"; Parameters: "/quiet InstallAllUsers=1 PrependPath=1"; StatusMsg: "Menginstal Python Base (Mohon tunggu)..."; Check: NeedsPython
+; 1. Instalasi Python Otomatis (Jika belum ada)
+Filename: "{tmp}\python-3.11.9-amd64.exe"; Parameters: "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0"; StatusMsg: "Menyiapkan Lingkungan Python (Mohon tunggu)..."; Check: NeedsPython
 
 ; 2. Instalasi Pustaka AI (Pip Requirements)
 Filename: "cmd.exe"; Parameters: "/c python -m pip install --upgrade pip && python -m pip install -r ""{app}\rag\requirements.txt"""; StatusMsg: "Menginstal Pustaka AI (Ini mungkin memakan waktu beberapa menit)..."; Flags: runhidden

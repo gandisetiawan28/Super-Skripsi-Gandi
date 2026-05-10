@@ -7,7 +7,7 @@
 #define MyAppExeName "super_skripsi_manager.exe"
 
 [Setup]
-AppId={C6D26A1A-A6F5-47B2-9A8E-F6E4C238A99B}
+AppId={{C6D26A1A-A6F5-47B2-9A8E-F6E4C238A99B}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}

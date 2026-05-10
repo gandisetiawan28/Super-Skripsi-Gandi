@@ -54,7 +54,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: super_skripsi_rag/python_portable
-          key: ${{ runner.os }}-python-portable-${{ hashFiles('super_skripsi_rag/requirements.txt') }}
+          key: ${{ runner.os }}-python-portable-v2-${{ hashFiles('super_skripsi_rag/requirements.txt') }}
 
       - name: Setup Portable Python Environment
         if: steps.cache-python.outputs.cache-hit != 'true'
@@ -82,10 +82,15 @@ jobs:
           Write-Host "Installing AI Libraries..."
           & "$portableDir/python.exe" -m pip install -r "$ragDir/requirements.txt" --no-warn-script-location
           
+          # 5. [CLEANUP] Remove unnecessary deep folders to avoid Windows MAX_PATH limit
+          Write-Host "Cleaning up unnecessary deep files (Diet Mode)..."
+          Get-ChildItem -Path "$portableDir/Lib/site-packages" -Include "include", "test", "tests", "__pycache__" -Recurse | Remove-Item -Recurse -Force
+          Get-ChildItem -Path "$portableDir/Lib/site-packages/torch" -Include "*.h", "*.cpp" -Recurse | Remove-Item -Force
+          
           # Clean up
           Remove-Item "$portableDir/get-pip.py" -Force
           Remove-Item "python_embed.zip" -Force
-          Write-Host "Portable Python Environment Ready!"
+          Write-Host "Portable Python Environment Ready & Optimized!"
 
       - name: Compile Inno Setup
         shell: pwsh
@@ -101,7 +106,7 @@ jobs:
           tag_name: v${{ env.VERSION }}
           name: Release v${{ env.VERSION }} (Internal Archive)
           body: |
-            Build otomatis (Portable Python Included).
+            Build otomatis (Portable Python Included - Optimized).
           files: |
             super_skripsi_manager/windows/installer/Output/SuperSkripsi_Setup_v${{ env.VERSION }}.exe
 
@@ -115,7 +120,7 @@ jobs:
           name: Release v${{ env.VERSION }}
           body: |
             ## Super Skripsi Gandi - Zero Dependency Release
-            Versi ini sudah menyertakan Python Portable. 
+            Versi ini sudah menyertakan Python Portable yang telah dioptimasi. 
             TIDAK PERLU instal apa pun lagi. Langsung jalan!
           draft: false
           prerelease: false

@@ -6,7 +6,7 @@
            xsi:type="TaskPaneApp">
 
   <Id>a8b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
-  <Version>1.1.6.0</Version>
+  <Version>1.1.7.0</Version>
   <ProviderName>Super Skripsi Gandi</ProviderName>
   <DefaultLocale>id-ID</DefaultLocale>
   <DisplayName DefaultValue="Super Skripsi Gandi Manager" />

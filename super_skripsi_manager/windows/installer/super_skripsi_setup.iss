@@ -61,13 +61,28 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 ; 1. Instalasi Python Otomatis (Jika belum ada)
 Filename: "{tmp}\python-3.11.9-amd64.exe"; Parameters: "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0"; StatusMsg: "Menyiapkan Lingkungan Python (Mohon tunggu)..."; Check: NeedsPython
 
-; 2. Instalasi Pustaka AI (Pip Requirements)
-Filename: "cmd.exe"; Parameters: "/c python -m pip install --upgrade pip && python -m pip install -r ""{app}\rag\requirements.txt"""; StatusMsg: "Menginstal Pustaka AI (Ini mungkin memakan waktu beberapa menit)..."; Flags: runhidden
+; 2. Instalasi Pustaka AI (Pip Requirements) - Menggunakan jalur absolut untuk keamanan
+Filename: "cmd.exe"; Parameters: "/c """"{code:GetPythonPath}"" -m pip install --upgrade pip && ""{code:GetPythonPath}"" -m pip install -r ""{app}\rag\requirements.txt"""""; StatusMsg: "Menginstal Pustaka AI (Ini mungkin memakan waktu beberapa menit)..."; Flags: runhidden
 
 ; 3. Auto-Restart Aplikasi
 Filename: "{app}\{#MyAppExeName}"; Flags: nowait
 
 [Code]
+function GetPythonPath(Param: String): String;
+var
+  PythonPath: String;
+begin
+  // Cek Registry untuk lokasi instalasi Python 3.11 (User)
+  if RegQueryStringValue(HKEY_CURRENT_USER, 'Software\Python\PythonCore\3.11\InstallPath', 'ExecutablePath', PythonPath) then
+    Result := PythonPath
+  // Cek Registry (System-wide)
+  else if RegQueryStringValue(HKEY_LOCAL_MACHINE, 'Software\Python\PythonCore\3.11\InstallPath', 'ExecutablePath', PythonPath) then
+    Result := PythonPath
+  // Fallback jika tidak ditemukan di registry, gunakan PATH standar
+  else
+    Result := 'python.exe';
+end;
+
 function NeedsPython(): Boolean;
 var
   ResultCode: Integer;

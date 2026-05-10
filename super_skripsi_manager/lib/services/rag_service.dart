@@ -53,6 +53,16 @@ class RagService {
     }
 
     final mainPy = p.join(ragDir, 'main.py');
+    final portablePython = p.join(ragDir, 'python_portable', 'python.exe');
+    final venvPython1 = p.join(ragDir, '.venv', 'Scripts', 'python.exe');
+    final venvPython2 = p.join(ragDir, 'venv', 'Scripts', 'python.exe');
+    
+    final usePortable = File(portablePython).existsSync();
+    final useVenv1 = File(venvPython1).existsSync();
+    final useVenv2 = File(venvPython2).existsSync();
+    final useVenv = useVenv1 || useVenv2;
+    final venvPython = useVenv1 ? venvPython1 : venvPython2;
+
     if (!File(mainPy).existsSync()) {
       print('[RAG] ⚠️ main.py tidak ditemukan di $ragDir');
       return false;
@@ -60,9 +70,18 @@ class RagService {
 
     try {
       final myPid = pid; // Get current Flutter process PID
-      print('[RAG] 🚀 Memulai Python RAG service dari $ragDir (User: $userId, Parent PID: $myPid)...');
+      String pythonExe = 'py';
+      if (usePortable) pythonExe = portablePython;
+      else if (useVenv) pythonExe = venvPython;
+      
+      print('[RAG] 🚀 Memulai Python RAG service...');
+      if (usePortable) print('[RAG] Mode: PORTABLE');
+      else if (useVenv) print('[RAG] Mode: VENV');
+      else print('[RAG] Mode: SYSTEM');
+      print('[RAG] Python Path: $pythonExe');
+
       _uvicornProcess = await Process.start(
-        'py',
+        pythonExe,
         ['-X', 'utf8', '-W', 'ignore', 'main.py', 
          '--host', '127.0.0.1', '--port', '$_port',
          '--parent-pid', '$myPid',
@@ -88,6 +107,12 @@ class RagService {
           if (line.trim().isNotEmpty) {
             onLog?.call('RAG ERROR', line.trim());
             print('[RAG Python ERROR] ${line.trim()}');
+
+            // [NEW] SELF-HEALING: Jika ada module yang kurang, otomatis instal!
+            if (line.contains('ModuleNotFoundError')) {
+              onLog?.call('SYSTEM', '🛠️ Mendeteksi modul hilang. Mencoba memperbaiki...');
+              _repairDependencies(pythonExe, ragDir);
+            }
           }
         }
       });
@@ -292,6 +317,7 @@ class RagService {
       p.join(Directory.current.path, '..', 'super_skripsi_rag'),
       p.join(Directory.current.path, 'super_skripsi_rag'),
       p.join(File(Platform.resolvedExecutable).parent.path, '..', 'super_skripsi_rag'),
+      p.join(File(Platform.resolvedExecutable).parent.path, 'data', 'flutter_assets', 'super_skripsi_rag'), // For bundled assets
       r'D:\SUPER SKRIPSI GANDI\super_skripsi_rag', // fallback absolut
     ];
 
@@ -302,5 +328,35 @@ class RagService {
       }
     }
     return null;
+  }
+
+  // ── Self-Healing Logic ────────────────────────────────────────────────────
+  bool _isRepairing = false;
+
+  /// Mencoba memperbaiki dependensi yang hilang secara otomatis.
+  Future<void> _repairDependencies(String pythonExe, String ragDir) async {
+    if (_isRepairing) return;
+    _isRepairing = true;
+
+    try {
+      print('[RAG] 🛠️ Menjalankan perbaikan dependensi otomatis...');
+      final result = await Process.run(
+        pythonExe,
+        ['-m', 'pip', 'install', '-r', 'requirements.txt'],
+        workingDirectory: ragDir,
+      );
+
+      if (result.exitCode == 0) {
+        onLog?.call('SYSTEM', '✅ Perbaikan selesai. Silakan restart fitur AI.');
+        print('[RAG] ✅ Perbaikan berhasil.');
+      } else {
+        onLog?.call('SYSTEM', '❌ Perbaikan gagal: ${result.stderr}');
+        print('[RAG] ❌ Perbaikan gagal: ${result.stderr}');
+      }
+    } catch (e) {
+      print('[RAG] ❌ Error saat repair: $e');
+    } finally {
+      _isRepairing = false;
+    }
   }
 }

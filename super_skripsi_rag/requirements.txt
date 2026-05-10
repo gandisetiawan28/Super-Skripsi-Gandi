@@ -7,3 +7,4 @@ litellm==1.66.3
 python-multipart==0.0.20
 httpx==0.28.1
 pydantic==2.11.4
+pdfplumber==0.11.5

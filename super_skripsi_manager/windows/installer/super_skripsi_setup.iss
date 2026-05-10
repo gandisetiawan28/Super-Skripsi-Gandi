@@ -64,7 +64,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Filename: "cmd.exe"; Parameters: "/c python -m pip install --upgrade pip && python -m pip install -r ""{app}\rag\requirements.txt"""; StatusMsg: "Menginstal Pustaka AI (Ini mungkin memakan waktu beberapa menit)..."; Flags: runhidden
 
 ; 3. Auto-Restart Aplikasi
-Filename: "{app}\{#MyAppExeName}"; Flags: nowait skipfs
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait
 
 [Code]
 function NeedsPython(): Boolean;

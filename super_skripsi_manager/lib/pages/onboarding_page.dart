@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in_all_platforms/google_sign_in_all_platforms.dart' as auth;
 import '../theme/glassmorphism_theme.dart';
+import '../constants/app_constants.dart';
 import '../providers/onboarding_provider.dart';
 import '../providers/license_provider.dart';
 import '../services/sync_service.dart';
@@ -256,6 +257,33 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> with SingleTick
     }
 
     return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Image.asset('assets/images/logo_nobg.png', height: 32),
+            const SizedBox(width: 12),
+            Text(
+              'Super Skripsi',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                color: GlassmorphismTheme.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'v${AppConstants.currentVersion}',
+              style: GoogleFonts.inter(
+                color: GlassmorphismTheme.textSecondary,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

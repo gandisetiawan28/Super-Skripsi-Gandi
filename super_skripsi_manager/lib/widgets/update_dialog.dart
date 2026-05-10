@@ -50,88 +50,111 @@ class _UpdateDialogState extends State<UpdateDialog> {
       child: Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        child: Container(
-          width: 450,
-          padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withOpacity(0.15),
-                Colors.white.withOpacity(0.05),
-              ],
-            ),
+            boxShadow: GlassmorphismTheme.elevatedShadow,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon Header
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: GlassmorphismTheme.primaryRed.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.system_update_rounded,
-                  size: 48,
-                  color: GlassmorphismTheme.primaryRed,
-                ),
+              // Header / App Bar-like structure
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: GlassmorphismTheme.primaryRed.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.system_update_rounded,
+                      color: GlassmorphismTheme.primaryRed,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Software Update',
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: GlassmorphismTheme.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (!_isDownloading)
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, color: GlassmorphismTheme.textSecondary),
+                    ),
+                ],
               ),
-              const SizedBox(height: 24),
+              const Divider(height: 32, color: Colors.black12),
+              const SizedBox(height: 16),
               
               // Version Info
-              Text(
-                'Update Baru Tersedia!',
-                style: GoogleFonts.inter(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: GlassmorphismTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Versi ${widget.updateInfo.latestVersion} (Sekarang: ${widget.updateInfo.currentVersion})',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: GlassmorphismTheme.textSecondary,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Versi baru tersedia: ${widget.updateInfo.latestVersion}',
+                      style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: GlassmorphismTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Versi terinstal: ${widget.updateInfo.currentVersion}',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: GlassmorphismTheme.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               
               const SizedBox(height: 24),
               
-              // Release Notes Box
+              // Release Notes Box (Scrollable)
               Container(
                 width: double.infinity,
+                constraints: const BoxConstraints(maxHeight: 180),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.black.withOpacity(0.05)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Apa yang baru:',
+                      'APA YANG BARU:',
                       style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white70,
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.bold,
+                        color: GlassmorphismTheme.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.updateInfo.releaseNotes,
-                      maxLines: 5,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: Colors.white60,
-                        height: 1.5,
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Text(
+                          widget.updateInfo.releaseNotes,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: GlassmorphismTheme.textPrimary.withOpacity(0.8),
+                            height: 1.6,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -147,16 +170,22 @@ class _UpdateDialogState extends State<UpdateDialog> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
-                        value: _progress,
-                        minHeight: 8,
-                        backgroundColor: Colors.white10,
+                        value: _progress < 0 ? null : _progress,
+                        minHeight: 10,
+                        backgroundColor: Colors.black.withOpacity(0.05),
                         valueColor: const AlwaysStoppedAnimation(GlassmorphismTheme.primaryRed),
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Mendownload Update... ${(_progress * 100).toInt()}%',
-                      style: GoogleFonts.inter(fontSize: 12, color: Colors.white70),
+                      _progress < 0 
+                        ? 'Menghubungkan ke server...' 
+                        : 'Mendownload Update... ${(_progress * 100).toInt()}%',
+                      style: GoogleFonts.inter(
+                        fontSize: 13, 
+                        fontWeight: FontWeight.w500,
+                        color: GlassmorphismTheme.textSecondary
+                      ),
                     ),
                   ],
                 ),

@@ -90,8 +90,9 @@ class UpdaterService {
       await for (final chunk in response.stream) {
         sink.add(chunk);
         receivedBytes += chunk.length;
-        if (totalBytes > 0 && onProgress != null) {
-          onProgress(receivedBytes / totalBytes);
+        if (onProgress != null) {
+          // Jika totalBytes 0, kirim nilai negatif sebagai penanda indeterminate
+          onProgress(totalBytes > 0 ? (receivedBytes / totalBytes) : -1.0);
         }
       }
       await sink.close();

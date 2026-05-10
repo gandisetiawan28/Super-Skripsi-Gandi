@@ -78,6 +78,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            super_skripsi_manager/windows/installer/Output/*.exe
+            super_skripsi_manager/windows/installer/Output/SuperSkripsi_Setup_v${{ env.VERSION }}.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

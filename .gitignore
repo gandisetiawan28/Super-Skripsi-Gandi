@@ -27,3 +27,8 @@
 # Secrets
 **/.env
 **/*.log
+
+# Build Artifacts
+*.exe
+**/Output/
+**/build/

@@ -32,10 +32,18 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          # Kita hapus versi spesifik agar selalu menggunakan Flutter terbaru yang mendukung Dart 3.5.0+
+          cache: true
 
       - name: Enable Windows Build
         run: flutter config --enable-windows-desktop
+
+      - name: Cache Pub Dependencies
+        uses: actions/cache@v4
+        with:
+          path: C:\Users\runneradmin\AppData\Local\Pub\Cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
 
       - name: Get Dependencies
         run: |

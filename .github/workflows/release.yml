@@ -97,8 +97,16 @@ jobs:
         shell: pwsh
         run: |
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
-            /DMyAppVersion="${{ env.VERSION }}" `
+            /DMyAppVersion=${{ env.VERSION }} `
             "super_skripsi_manager\windows\installer\super_skripsi_setup.iss"
+
+      - name: List files in installer directory (Debug)
+        if: always()
+        run: |
+          dir super_skripsi_manager\windows\installer\
+          if (Test-Path super_skripsi_manager\windows\installer\Output) {
+            dir super_skripsi_manager\windows\installer\Output
+          }
 
       # --- RILIS 1: REPOSITORY PRIVAT ---
       - name: Create Release in Private Repository
@@ -110,7 +118,7 @@ jobs:
             Build otomatis (Portable Python Included - Optimized).
           fail_on_unmatched_files: true
           files: |
-            super_skripsi_manager/windows/installer/Output/SuperSkripsi_Setup_v${{ env.VERSION }}.exe
+            super_skripsi_manager/windows/installer/Output/SuperSkripsi_Setup_v*.exe
 
       # --- RILIS 2: REPOSITORY PUBLIK ---
       - name: Create Release in Public Repository
@@ -128,7 +136,7 @@ jobs:
           prerelease: false
           fail_on_unmatched_files: true
           files: |
-            super_skripsi_manager/windows/installer/Output/SuperSkripsi_Setup_v${{ env.VERSION }}.exe
+            super_skripsi_manager/windows/installer/Output/SuperSkripsi_Setup_v*.exe
 
       # --- SYNC README ---
       - name: Sync README to Public Repo

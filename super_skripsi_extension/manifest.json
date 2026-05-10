@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Super Skripsi Gandi Manager",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "Automate sequential inputs to Gemini, ChatGPT, Claude, and DeepSeek from Excel/CSV or manual input.",
   "permissions": [
     "activeTab",

@@ -50,6 +50,9 @@ class _UpdateDialogState extends State<UpdateDialog> {
       child: Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        child: Container(
+          width: 450,
+          padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),

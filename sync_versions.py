@@ -101,11 +101,30 @@ def update_ui_versions(version):
             f.write(content)
         print(f"Updated Add-in UI Version: v{version}")
 
+def update_iss_version(version):
+    path = os.path.join(ROOT_DIR, 'super_sk_manager', 'windows', 'installer', 'super_skripsi_setup.iss')
+    # Try alternate path if not found
+    if not os.path.exists(path):
+        path = os.path.join(ROOT_DIR, 'super_skripsi_manager', 'windows', 'installer', 'super_skripsi_setup.iss')
+        
+    if not os.path.exists(path): return
+    
+    with open(path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    # Update #define MyAppVersion "X.X.X" (only if it's the fallback version)
+    new_content = re.sub(r'#define MyAppVersion "(.*?)"', f'#define MyAppVersion "{version}"', content)
+    
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(new_content)
+    print(f"Updated Inno Setup Script: {version}")
+
 if __name__ == "__main__":
     print("Synchronizing versions using pubspec.yaml as source of truth...")
     version = get_version_from_pubspec()
     if version:
         update_app_constants(version)
+        update_iss_version(version)
         update_extension(version)
         update_addin_package(version)
         update_addin_manifest(version)

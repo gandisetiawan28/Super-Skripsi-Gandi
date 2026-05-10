@@ -32,12 +32,19 @@ class UpdaterService {
           String? downloadUrl;
           String? assetName;
 
+          // Mencari asset yang paling cocok dengan versi (vX.Y.Z)
           for (final asset in assets) {
             final name = asset['name'] as String;
             if (name.endsWith('.exe') || name.endsWith('.msix')) {
-              downloadUrl = asset['download_url'] as String;
-              assetName = name;
-              break;
+              // Utamakan yang mengandung versi terbaru di namanya (misal v1.0.9)
+              if (name.contains(tagName)) {
+                downloadUrl = asset['download_url'] as String;
+                assetName = name;
+                break;
+              }
+              // Simpan sebagai fallback jika tidak ditemukan yang spesifik versinya
+              downloadUrl ??= asset['download_url'] as String;
+              assetName ??= name;
             }
           }
 
@@ -100,9 +107,21 @@ class UpdaterService {
   Future<void> executeInstaller(String filePath) async {
     if (filePath.endsWith('.exe')) {
       // Jalankan installer dalam mode senyap (silent)
+      // /SP- : Menghilangkan prompt "This will install..." awal
+      // /VERYSILENT : Tanpa UI sama sekali
+      // /SUPPRESSMSGBOXES : Sembunyikan semua dialog box
+      // /NORESTART : Jangan restart komputer (tapi aplikasi akan restart via .iss)
+      // /CLOSEAPPLICATIONS : Tutup aplikasi yang sedang berjalan
       await Process.start(
         filePath,
-        ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CLOSEAPPLICATIONS'],
+        [
+          '/VERYSILENT',
+          '/SUPPRESSMSGBOXES',
+          '/NORESTART',
+          '/SP-',
+          '/CLOSEAPPLICATIONS',
+          '/FORCECLOSEAPPLICATIONS'
+        ],
         mode: ProcessStartMode.detached,
       );
     } else if (filePath.endsWith('.msix')) {
@@ -122,6 +141,18 @@ class UpdaterService {
       if (rv < lv) return false;
     }
     return false;
+  }
+
+  /// Membersihkan proses background sebelum update agar tidak mengunci file
+  Future<void> cleanupBeforeUpdate() async {
+    final processes = ['node.exe', 'python.exe', 'py.exe'];
+    for (final proc in processes) {
+      try {
+        await Process.run('taskkill', ['/F', '/IM', proc, '/T']);
+      } catch (_) {}
+    }
+    // Beri jeda agar OS melepaskan handle file
+    await Future.delayed(const Duration(milliseconds: 800));
   }
 }
 

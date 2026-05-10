@@ -109,7 +109,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         onProgress: (p) => setState(() => _downloadProgress = p),
       );
       if (path != null) {
+        await _updater.cleanupBeforeUpdate();
         await _updater.executeInstaller(path);
+        exit(0);
       }
     } catch (e) {
       if (mounted) {

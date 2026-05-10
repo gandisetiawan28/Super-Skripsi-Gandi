@@ -229,6 +229,9 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
             onDownload: (url, name, progress) async {
               final path = await updater.downloadUpdate(url, name, onProgress: progress);
               if (path != null) {
+                // Matikan servis background secara agresif sebelum update
+                await updater.cleanupBeforeUpdate();
+                
                 await updater.executeInstaller(path);
                 // Matikan aplikasi agar installer bisa menimpa file lama
                 exit(0);

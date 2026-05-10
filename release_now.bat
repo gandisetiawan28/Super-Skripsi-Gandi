@@ -43,8 +43,10 @@ echo [OK] Kode bersih.
 
 echo.
 echo [4/5] Simulasi Build Windows (Mencegah Error GitHub)...
+echo Membersihkan cache lama agar akurat...
+call flutter clean > nul 2>&1
 echo Harap tunggu, ini memastikan rilis Anda 100%% aman...
-call flutter build windows --no-pub --release > build_log.txt 2>&1
+call flutter build windows --release > build_log.txt 2>&1
 if %errorlevel% neq 0 (
     echo.
     echo [!] ERROR: Kompilasi gagal! Jangan push ke GitHub.

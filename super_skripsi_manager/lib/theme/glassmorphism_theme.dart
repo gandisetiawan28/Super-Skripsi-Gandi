@@ -139,30 +139,6 @@ class GlassmorphismTheme {
           ),
         ),
       ),
-      dialogTheme: const DialogTheme().copyWith(
-        backgroundColor: Colors.white70,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(radiusLarge)),
-          side: BorderSide(color: Colors.white.withOpacity(0.3)),
-        ),
-        titleTextStyle: GoogleFonts.inter(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: textPrimary,
-        ),
-        contentTextStyle: GoogleFonts.inter(
-          fontSize: 14,
-          color: textPrimary,
-        ),
-      ),
-      cardTheme: const CardTheme().copyWith(
-        elevation: 0,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(radiusMedium)),
-        ),
-        color: Colors.white70,
-      ),
     );
   }
 }

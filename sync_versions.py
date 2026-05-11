@@ -9,6 +9,7 @@ APP_CONSTANTS_PATH = os.path.join(ROOT_DIR, 'super_skripsi_manager', 'lib', 'con
 EXTENSION_MANIFEST = os.path.join(ROOT_DIR, 'super_skripsi_extension', 'manifest.json')
 ADDIN_PACKAGE = os.path.join(ROOT_DIR, 'super_skripsi_addin', 'package.json')
 ADDIN_MANIFEST = os.path.join(ROOT_DIR, 'super_skripsi_addin', 'manifest.xml')
+MOBILE_PUBSPEC = os.path.join(ROOT_DIR, 'super_skripsi_mobile', 'pubspec.yaml')
 
 # UI Paths for Version Display
 EXTENSION_POPUP = os.path.join(ROOT_DIR, 'super_skripsi_extension', 'popup.html')
@@ -119,6 +120,21 @@ def update_iss_version(version):
         f.write(new_content)
     print(f"Updated Inno Setup Script: {version}")
 
+def update_mobile_pubspec(version):
+    path = MOBILE_PUBSPEC
+    if not os.path.exists(path): return
+    
+    with open(path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    # Update version: X.X.X+X (keep the build number if present, or just update the prefix)
+    # This regex matches 'version: 1.0.0+1' and replaces the '1.0.0' part
+    new_content = re.sub(r'version:\s*([^\s+]+)', f'version: {version}', content)
+    
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(new_content)
+    print(f"Updated Mobile Pubspec: {version}")
+
 if __name__ == "__main__":
     print("Synchronizing versions using pubspec.yaml as source of truth...")
     version = get_version_from_pubspec()
@@ -128,6 +144,7 @@ if __name__ == "__main__":
         update_extension(version)
         update_addin_package(version)
         update_addin_manifest(version)
+        update_mobile_pubspec(version)
         update_ui_versions(version)
         print(f"\nSuccess! All projects are now in sync with version: {version}")
     else:

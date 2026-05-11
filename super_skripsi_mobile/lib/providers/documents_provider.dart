@@ -1,31 +1,28 @@
-import 'dart:convert';
 import 'dart:io';
+import '../services/api_config.dart';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import '../models/document_model.dart';
-import '../services/pdf_service.dart';
-import '../services/hashing_service.dart';
-import '../services/chunking_service.dart';
-import '../services/vector_store_service.dart';
-import '../services/ai_extraction_service.dart';
-import '../services/api_key_service.dart';
-import '../services/ris_generator_service.dart';
-import '../services/sync_service.dart';
+import 'package:super_skripsi_mobile/services/api_config.dart';
+import 'package:super_skripsi_mobile/services/pdf_service.dart';
+import 'package:super_skripsi_mobile/services/hashing_service.dart';
+import 'package:super_skripsi_mobile/services/chunking_service.dart';
+import 'package:super_skripsi_mobile/services/ai_extraction_service.dart';
+import 'package:super_skripsi_mobile/services/api_key_service.dart';
+import 'package:super_skripsi_mobile/services/ris_generator_service.dart';
+import 'package:super_skripsi_mobile/services/sync_service.dart';
+import 'package:super_skripsi_mobile/services/vector_store_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-
 import 'onboarding_provider.dart';
-
-final vectorStoreProvider = Provider<VectorStoreService>((ref) {
-  final email = ref.watch(onboardingProvider).googleEmail;
-  return VectorStoreService(email);
-});
+import 'vector_store_provider.dart';
 
 final documentsProvider =
     StateNotifierProvider<DocumentsNotifier, AsyncValue<List<DocumentModel>>>((ref) {
   final vectorStore = ref.watch(vectorStoreProvider);
-  final apiKeyService = ref.watch(_apiKeyServiceProvider);
+  final apiKeyService = ref.watch(apiKeyServiceProvider);
   return DocumentsNotifier(ref, vectorStore, apiKeyService);
 });
 
@@ -39,7 +36,7 @@ class AiExtractionSettings {
   const AiExtractionSettings({this.provider, this.model});
 }
 
-final _apiKeyServiceProvider = Provider<ApiKeyService>((ref) {
+final apiKeyServiceProvider = Provider<ApiKeyService>((ref) {
   final email = ref.watch(onboardingProvider).googleEmail;
   return ApiKeyService(email);
 });
@@ -59,6 +56,13 @@ class DocumentsNotifier extends StateNotifier<AsyncValue<List<DocumentModel>>> {
   DocumentsNotifier(this.ref, this._vectorStore, this._apiKeyService)
       : super(const AsyncValue.loading()) {
     _loadDocuments();
+    
+    // Listen to sync status changes to auto-refresh
+    ref.listen(syncProvider, (previous, next) {
+      if (next.status == SyncStatus.success && previous?.status == SyncStatus.syncing) {
+        _loadDocuments();
+      }
+    });
   }
 
   void _log(String msg) {
@@ -539,11 +543,10 @@ class DocumentsNotifier extends StateNotifier<AsyncValue<List<DocumentModel>>> {
       
       // Update local SQLite
       await _vectorStore.insertDocument(updatedDocMap);
-      
       // Sync with Python RAG backend
       try {
         await http.post(
-          Uri.parse('http://localhost:28146/documents/update'),
+          Uri.parse('${ApiConfig.ragCloudUrl}/documents/update'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'doc_id': doc.id,

@@ -93,7 +93,7 @@ class RagStateNotifier extends StateNotifier<RagState> {
   Future<void> refresh() => _refreshStatus();
 
   /// Index dokumen baru ke ChromaDB
-  Future<String?> indexDocument({
+  Future<Map<String, dynamic>?> indexDocument({
     required String filePath,
     required String docId,
     required String title,
@@ -108,9 +108,9 @@ class RagStateNotifier extends StateNotifier<RagState> {
     String? kerangkaSkripsi,
     String? systemPrompt, // NEW
   }) async {
-    if (!state.isActive) return 'RAG Service is not active.';
+    if (!state.isActive) return {'error': 'RAG Service is not active.'};
 
-    final error = await _service.indexDocument(
+    final result = await _service.indexDocument(
       filePath: filePath,
       docId: docId,
       title: title,
@@ -127,12 +127,12 @@ class RagStateNotifier extends StateNotifier<RagState> {
     );
 
 
-    if (error == null) {
+    if (result != null && result['error'] == null) {
       // Update chunk count
       await _refreshStatus();
     }
 
-    return error;
+    return result;
   }
 
   /// Batalkan proses indexing yang sedang berjalan

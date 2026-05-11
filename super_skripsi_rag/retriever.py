@@ -11,6 +11,10 @@ def semantic_search(
     query: str,
     doc_ids: list[str] | None = None,
     top_k: int = 5,
+    filter_key: str | None = None,
+    filter_val: str | None = None,
+    bab: str | None = None,
+    sub_bab: str | None = None,
 ) -> list[dict]:
     """
     Cari chunk paling relevan secara semantik.
@@ -27,11 +31,19 @@ def semantic_search(
             'chunk_index', 'page_start', 'page_end', 'score'
         }]
     """
-    results = search(query, doc_ids=doc_ids, top_k=top_k)
+    results = search(
+        query, 
+        doc_ids=doc_ids, 
+        top_k=top_k, 
+        filter_key=filter_key, 
+        filter_val=filter_val,
+        bab=bab,
+        sub_bab=sub_bab
+    )
 
     # Buang hasil dengan skor sangat rendah (kemungkinan tidak relevan)
     SCORE_THRESHOLD = 0.25
-    filtered = [r for r in results if r['score'] >= SCORE_THRESHOLD]
+    filtered = [r for r in results if float(r.get('score', 0)) >= SCORE_THRESHOLD]
 
     if not filtered:
         # Kembalikan top-3 meski skor rendah (jangan kosong)

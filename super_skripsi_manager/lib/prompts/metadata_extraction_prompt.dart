@@ -47,7 +47,7 @@ Jika document_type = "CONF":
   - Field buku → null
 
 === LANGKAH 3: ATURAN UMUM ===
-1. BERSIHKAN NAMA PENULIS: Hapus gelar (S.E., M.M., Ph.D.), angka, email, dan afiliasi kampus. Ambil murni nama orangnya saja.
+1. BERSIHKAN NAMA PENULIS: Hapus gelar (S.E., M.M., Ph.D.), angka, email, dan afiliasi kampus. Ambil HANYA NAMA BELAKANG (Last Name) dari setiap penulis. (Contoh: "Lamra Megawati Br Sipayung" menjadi "Sipayung", "Philip Kotler" menjadi "Kotler"). DILARANG KERAS menyertakan nama depan atau tengah.
 2. JIKA DATA TIDAK DITEMUKAN: Gunakan null. Jangan mengarang data.
 3. EKSTRAK VARIABEL (category): Ekstrak variabel-variabel penelitian dari judul (Variabel X, Y, Z). Pisahkan dengan koma.
 4. TERJEMAHAN BILINGUAL (translated_title & translated_category): Terjemahkan judul dan variabel ke bahasa lawan (Inggris→Indonesia atau Indonesia→Inggris).
@@ -62,7 +62,7 @@ Keluarkan HANYA JSON murni, tanpa markdown, tanpa penjelasan:
 {
   "document_type": "JOUR atau BOOK atau THES atau CONF atau RPRT",
   "title": "Judul Lengkap Dokumen",
-  "authors": ["Nama Penulis Satu", "Nama Penulis Dua"],
+  "authors": ["Nama Belakang Penulis Satu", "Nama Belakang Penulis Dua"],
   "year": "2024",
   "category": "Variabel Penelitian, Variabel Lain",
   "translated_title": "English Translation of Title",

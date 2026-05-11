@@ -4,6 +4,7 @@ import ChatPanel from './components/ChatPanel';
 import ParafrasePanel from './components/ParafrasePanel';
 import LlmSelector from './components/LlmSelector';
 import DocumentSelector from './components/DocumentSelector';
+import QuranPanel from './components/QuranPanel';
 import { isRagServiceAvailable } from './services/ragBridge';
 
 export default function App() {
@@ -46,7 +47,7 @@ export default function App() {
           <img src="assets/icon-32.png" className="logo-icon-img" alt="Logo" />
           <div className="title-wrapper">
             <span className="logo-text">Super Skripsi</span>
-            <span className="version-tag">v1.1.22</span>
+            <span className="version-tag">v1.1.23</span>
           </div>
         </div>
         <div className="header-badges">
@@ -88,6 +89,13 @@ export default function App() {
           <span className="tab-icon">✍️</span>
           <span>Parafrase</span>
         </button>
+        <button
+          className={`tab-item ${activePage === 'quran' ? 'active' : ''}`}
+          onClick={() => setActivePage('quran')}
+        >
+          <span className="tab-icon">📖</span>
+          <span>Al-Quran</span>
+        </button>
       </div>
 
       {/* Config Bar — only for Sitasi page */}
@@ -99,7 +107,9 @@ export default function App() {
       )}
 
       {/* Main Content */}
-      {activePage === 'sitasi' ? <ChatPanel /> : <ParafrasePanel />}
+      {activePage === 'sitasi' && <ChatPanel />}
+      {activePage === 'parafrase' && <ParafrasePanel />}
+      {activePage === 'quran' && <QuranPanel />}
     </div>
   );
 }

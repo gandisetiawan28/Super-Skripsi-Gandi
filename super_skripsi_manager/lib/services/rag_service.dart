@@ -12,6 +12,7 @@ class RagService {
   static const Duration _uploadTimeout = Duration(seconds: 1200);
 
   Process? _uvicornProcess;
+  bool _isStarting = false;
   void Function(String level, String message)? onLog;
 
   // ── Auto-Start Uvicorn ─────────────────────────────────────────────────────
@@ -19,56 +20,62 @@ class RagService {
   /// Start Python RAG service jika belum berjalan.
   /// Menemukan lokasi skrip secara otomatis relatif terhadap exe.
   Future<bool> startService({String? userId}) async {
-    // Cek dulu kalau sudah jalan
-    final currentStatus = await getStatus();
-    if (currentStatus != null) {
-      final activeUser = currentStatus['user_id'] as String?;
-      final targetUser = userId ?? 'global';
-      
-      if (activeUser == targetUser) {
-        print('[RAG] Service sudah berjalan untuk user $targetUser.');
-        return true;
-      } else {
-        print('[RAG] 🔄 Service berjalan untuk user $activeUser, tapi butuh $targetUser. Restarting...');
-        await stopService();
-      }
+    if (_isStarting) {
+      print('[RAG] Service sedang dalam proses startup, mengabaikan request duplikat.');
+      return true;
     }
-
-    // [MOD] Agresif bersihkan port sebelum start
-    try {
-      print('[RAG] Pembersihan port $_port via PowerShell...');
-      await Process.run('powershell', [
-        '-Command',
-        'Get-NetTCPConnection -LocalPort $_port -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id \$_.OwningProcess -Force -ErrorAction SilentlyContinue }'
-      ]);
-      await Future.delayed(const Duration(milliseconds: 1000));
-    } catch (e) {
-      print('[RAG] Gagal membersihkan port: $e');
-    }
-
-    final ragDir = _findRagServiceDir();
-    if (ragDir == null) {
-      print('[RAG] ⚠️ Direktori super_skripsi_rag tidak ditemukan. Skip auto-start.');
-      return false;
-    }
-
-    final mainPy = p.join(ragDir, 'main.py');
-    final portablePython = p.join(ragDir, 'python_portable', 'python.exe');
-    final venvPython1 = p.join(ragDir, '.venv', 'Scripts', 'python.exe');
-    final venvPython2 = p.join(ragDir, 'venv', 'Scripts', 'python.exe');
     
-    final usePortable = File(portablePython).existsSync();
-    final useVenv1 = File(venvPython1).existsSync();
-    final useVenv2 = File(venvPython2).existsSync();
-    final useVenv = useVenv1 || useVenv2;
-    final venvPython = useVenv1 ? venvPython1 : venvPython2;
-
-    if (!File(mainPy).existsSync()) {
-      print('[RAG] ⚠️ main.py tidak ditemukan di $ragDir');
-      return false;
-    }
-
+    _isStarting = true;
     try {
+      // Cek dulu kalau sudah jalan
+      final currentStatus = await getStatus();
+      if (currentStatus != null) {
+        final activeUser = currentStatus['user_id'] as String?;
+        final targetUser = userId ?? 'global';
+        
+        if (activeUser == targetUser) {
+          print('[RAG] Service sudah berjalan untuk user $targetUser.');
+          return true;
+        } else {
+          print('[RAG] 🔄 Service berjalan untuk user $activeUser, tapi butuh $targetUser. Restarting...');
+          await stopService();
+        }
+      }
+
+      // [MOD] Agresif bersihkan port sebelum start
+      try {
+        print('[RAG] Pembersihan port $_port via PowerShell...');
+        await Process.run('powershell', [
+          '-Command',
+          'Get-NetTCPConnection -LocalPort $_port -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id \$_.OwningProcess -Force -ErrorAction SilentlyContinue }'
+        ]);
+        await Future.delayed(const Duration(milliseconds: 1000));
+      } catch (e) {
+        print('[RAG] Gagal membersihkan port: $e');
+      }
+
+      final ragDir = _findRagServiceDir();
+      if (ragDir == null) {
+        print('[RAG] ⚠️ Direktori super_skripsi_rag tidak ditemukan. Skip auto-start.');
+        return false;
+      }
+
+      final mainPy = p.join(ragDir, 'main.py');
+      final portablePython = p.join(ragDir, 'python_portable', 'python.exe');
+      final venvPython1 = p.join(ragDir, '.venv', 'Scripts', 'python.exe');
+      final venvPython2 = p.join(ragDir, 'venv', 'Scripts', 'python.exe');
+      
+      final usePortable = File(portablePython).existsSync();
+      final useVenv1 = File(venvPython1).existsSync();
+      final useVenv2 = File(venvPython2).existsSync();
+      final useVenv = useVenv1 || useVenv2;
+      final venvPython = useVenv1 ? venvPython1 : venvPython2;
+
+      if (!File(mainPy).existsSync()) {
+        print('[RAG] ⚠️ main.py tidak ditemukan di $ragDir');
+        return false;
+      }
+
       final myPid = pid; // Get current Flutter process PID
       String pythonExe = 'py';
       if (usePortable) pythonExe = portablePython;
@@ -132,6 +139,8 @@ class RagService {
     } catch (e) {
       print('[RAG] ❌ Gagal start uvicorn: $e');
       return false;
+    } finally {
+      _isStarting = false;
     }
   }
 
@@ -184,14 +193,7 @@ class RagService {
 
   /// Upload dan index dokumen ke ChromaDB.
   /// Dipanggil otomatis setelah dokumen berhasil disimpan di Research Hub.
-  ///
-  /// [filePath] - path lokal file PDF
-  /// [docId]    - ID dokumen (dari Flutter database, untuk konsistensi)
-  /// [title]    - judul dokumen
-  /// [authors]  - list nama penulis
-  /// [year]     - tahun terbit
-  /// [journalName] - nama jurnal (opsional)
-  Future<String?> indexDocument({
+  Future<Map<String, dynamic>?> indexDocument({
     required String filePath,
     required String docId,
     required String title,
@@ -204,10 +206,10 @@ class RagService {
     String? judulSkripsi,
     String? lokasiPenelitian,
     String? kerangkaSkripsi,
-    String? systemPrompt, // NEW
+    String? systemPrompt,
   }) async {
     if (!File(filePath).existsSync()) {
-      return 'File tidak ditemukan: $filePath';
+      return {'error': 'File tidak ditemukan: $filePath'};
     }
 
     try {
@@ -228,13 +230,11 @@ class RagService {
         request.fields['provider'] = provider ?? 'gemini';
         request.fields['model'] = model ?? '';
         
-        // Add research context if available
         if (judulSkripsi != null) request.fields['judul_skripsi'] = judulSkripsi;
         if (lokasiPenelitian != null) request.fields['lokasi_penelitian'] = lokasiPenelitian;
         if (kerangkaSkripsi != null) request.fields['kerangka_skripsi'] = kerangkaSkripsi;
-        if (systemPrompt != null) request.fields['system_prompt'] = systemPrompt; // NEW
+        if (systemPrompt != null) request.fields['system_prompt'] = systemPrompt;
       }
-
 
       print('[RAG] 📤 Indexing "$title" ke ChromaDB (Structured)...');
       final streamedRes = await request.send().timeout(_uploadTimeout);
@@ -243,18 +243,18 @@ class RagService {
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         print('[RAG] ✅ Berhasil diindex: ${data['chunk_count']} chunk.');
-        return null; // Success
+        return data;
       } else {
         final errorMsg = 'HTTP ${res.statusCode}: ${res.body}';
         print('[RAG] ❌ Index gagal: $errorMsg');
-        return errorMsg;
+        return {'error': errorMsg};
       }
     } catch (e) {
       final errorMsg = e.toString().contains('Timeout') 
           ? 'Timeout: Proses AI memakan waktu terlalu lama (>20 menit). Cek koneksi atau coba provider lain.'
           : 'Error: $e';
       print('[RAG] ❌ Error indexing: $errorMsg');
-      return errorMsg;
+      return {'error': errorMsg};
     }
   }
 
@@ -270,12 +270,9 @@ class RagService {
   /// Bersihkan antrean di ApiBridge (localhost:3000)
   Future<void> cleanupBridge() async {
     try {
-      // Mencoba membersihkan antrean di bridge localhost:3000
       await http.get(Uri.parse('http://localhost:3000/api/clear')).timeout(_timeout);
       print('[RAG] ✅ ApiBridge queue cleared.');
-    } catch (_) {
-      // Abaikan jika bridge tidak merespon atau endpoint berbeda
-    }
+    } catch (_) {}
   }
 
   /// Hapus dokumen dari ChromaDB.
@@ -308,17 +305,14 @@ class RagService {
     }
   }
 
-  // ── Helper ────────────────────────────────────────────────────────────────
-
   /// Temukan direktori super_skripsi_rag relatif terhadap exe.
   String? _findRagServiceDir() {
-    // Coba relatif terhadap working directory
     final candidates = [
       p.join(Directory.current.path, '..', 'super_skripsi_rag'),
       p.join(Directory.current.path, 'super_skripsi_rag'),
       p.join(File(Platform.resolvedExecutable).parent.path, '..', 'super_skripsi_rag'),
-      p.join(File(Platform.resolvedExecutable).parent.path, 'data', 'flutter_assets', 'super_skripsi_rag'), // For bundled assets
-      r'D:\SUPER SKRIPSI GANDI\super_skripsi_rag', // fallback absolut
+      p.join(File(Platform.resolvedExecutable).parent.path, 'data', 'flutter_assets', 'super_skripsi_rag'),
+      r'D:\SUPER SKRIPSI GANDI\super_skripsi_rag',
     ];
 
     for (final candidate in candidates) {
@@ -330,7 +324,6 @@ class RagService {
     return null;
   }
 
-  // ── Self-Healing Logic ────────────────────────────────────────────────────
   bool _isRepairing = false;
 
   /// Mencoba memperbaiki dependensi yang hilang secara otomatis.

@@ -10,11 +10,13 @@ Endpoint:
   GET  /health                 Health check
 """
 
+import os
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
 import hashlib
 import json
 import uuid
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any, Union
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -102,13 +104,13 @@ def _save_registry(registry: dict):
 
 class SearchRequest(BaseModel):
     query: str
-    doc_ids: list[str] | None = None
+    doc_ids: Optional[List[str]] = None
     top_k: int = 5
 
 
 class ExtractRequest(BaseModel):
     query: str
-    doc_ids: list[str] | None = None
+    doc_ids: Optional[List[str]] = None
     api_key: str
     provider: str = "cerebras"
     model: str = "cerebras/llama-3.3-70b"
@@ -352,7 +354,7 @@ async def upload_pdf(
         global is_aborted
         is_aborted = False # Reset flag before start
 
-        theories = await extract_structured_theories(
+        extraction_result = await extract_structured_theories(
             all_text, 
             api_key, 
             provider, 
@@ -367,6 +369,9 @@ async def upload_pdf(
             custom_prompt=system_prompt,
             check_abort=lambda: is_aborted # Pass check function
         )
+
+        theories = extraction_result.get("theories", [])
+        ai_meta = extraction_result.get("metadata", {})
 
         
         if not theories:
@@ -407,33 +412,47 @@ async def upload_pdf(
                 sitasi_val = f"{sitasi_val} ({tahun_val})"
             
             # Ambil sub_bab/konteks (resilient)
-            sub_bab_val = (
+            sub_bab_val = str(
                 t.get("sub_bab") or 
                 t.get("variable_terkait") or 
                 t.get("konteks") or 
                 "Umum"
-            )
+            ).strip()
+
+            # Infer Bab (NEW)
+            # Logika: Jika sub_bab diawali angka '1.', maka Bab 1. Jika ada kata 'Bab 2', maka Bab 2.
+            bab_val = "Umum"
+            sb_lower = sub_bab_val.lower()
+            if "bab 1" in sb_lower or sub_bab_val.startswith("1."): bab_val = "Bab 1"
+            elif "bab 2" in sb_lower or sub_bab_val.startswith("2."): bab_val = "Bab 2"
+            elif "bab 3" in sb_lower or sub_bab_val.startswith("3."): bab_val = "Bab 3"
+            elif "bab 4" in sb_lower or sub_bab_val.startswith("4."): bab_val = "Bab 4"
+            elif "bab 5" in sb_lower or sub_bab_val.startswith("5."): bab_val = "Bab 5"
+            # Fallback: Cari angka pertama
+            elif sub_bab_val and sub_bab_val[0].isdigit():
+                bab_val = f"Bab {sub_bab_val[0]}"
 
             # Ambil jenis sumber (primer/sekunder)
-            jenis_val = t.get("jenis_sumber") or t.get("citation_type") or t.get("jenis") or "Primer"
+            jenis_val = str(t.get("jenis_sumber") or t.get("citation_type") or t.get("jenis") or "Primer").strip()
 
             # Buat metadata bersih untuk ChromaDB
             meta = {
                 "id": f"{effective_doc_id}_theory_{i}",
                 "doc_id": effective_doc_id,
-                "content": str(content),
+                "content": str(content).strip(),
                 "chunk_index": i,
                 "is_structured": "true",
-                "halaman": str(page_val),
-                "sub_bab": str(sub_bab_val),
-                "sitasi": str(sitasi_val),
-                "jenis_sumber": str(jenis_val),
-                "daftar_pustaka_source": str(t.get("daftar_pustaka_source") or t.get("tahun") or "-")
+                "halaman": str(page_val).strip(),
+                "bab": bab_val,
+                "sub_bab": sub_bab_val,
+                "sitasi": str(sitasi_val).strip(),
+                "jenis_sumber": jenis_val,
+                "daftar_pustaka_source": str(t.get("daftar_pustaka_source") or t.get("tahun") or "-").strip()
             }
-            # Tambahkan sisa metadata dari AI jika ada
+            # Tambahkan sisa metadata dari AI jika ada (pastikan string & strip)
             for k, v in t.items():
                 if k not in meta:
-                    meta[k] = str(v)
+                    meta[k] = str(v).strip()
             
             chunk_dicts.append(meta)
         
@@ -465,6 +484,7 @@ async def upload_pdf(
             "chunk_count": len(chunk_dicts),
             "page_count": extracted["page_count"],
             "title": doc_meta["title"],
+            "metadata": ai_meta, # Return AI extracted metadata
             "ris": to_ris(doc_meta),
         }
     except HTTPException:
@@ -484,15 +504,29 @@ def search_endpoint(
     q: str = "",
     doc_ids: str = "",
     top_k: int = 5,
+    filter_key: str = "",
+    filter_val: str = "",
+    bab: Optional[str] = None,
+    sub_bab: Optional[str] = None,
 ):
     """
     Semantic search. Query params:
       q:       kalimat query (jika kosong = browse all)
       doc_ids: comma-separated doc_id
       top_k:   jumlah hasil
+      bab:     filter bab (opsional)
+      sub_bab: filter sub_bab (opsional)
     """
     ids = [d.strip() for d in doc_ids.split(",") if d.strip()] if doc_ids else None
-    results = semantic_search(q, doc_ids=ids, top_k=top_k)
+    results = semantic_search(
+        q, 
+        doc_ids=ids, 
+        top_k=top_k, 
+        filter_key=filter_key, 
+        filter_val=filter_val,
+        bab=bab,
+        sub_bab=sub_bab
+    )
 
     return {
         "query": q,

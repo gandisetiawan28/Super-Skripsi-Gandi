@@ -1,31 +1,61 @@
 import json
+import re
 import httpx
 import asyncio
 from typing import List, Dict, Optional, Callable
 
-from prompts import THEORY_EXTRACTION_PROMPT
 
 def repair_json_string(text: str) -> str:
-    """Mencoba memperbaiki JSON yang rusak atau terpotong."""
-    text = text.strip()
+    """Mencoba memperbaiki JSON yang rusak atau terpotong dari respons AI."""
     if not text: return "[]"
     
-    # Cari bracket pertama dan terakhir
-    start = text.find('[')
-    end = text.rfind(']')
+    # 1. Hapus markdown code fences jika ada
+    text = text.strip()
+    if text.startswith("```"):
+        # Cari baris pertama setelah ```json atau ```
+        lines = text.splitlines()
+        if len(lines) > 2:
+            if lines[0].startswith("```"):
+                # Buang baris pertama dan terakhir (```)
+                if lines[-1].startswith("```"):
+                    text = "\n".join(lines[1:-1])
+                else:
+                    text = "\n".join(lines[1:])
     
+    # 2. Cari bracket pertama dan terakhir untuk mengambil array/object
+    # Kita prioritaskan Array [] karena itu yang kita harapkan
+    start_arr = text.find('[')
+    end_arr = text.rfind(']')
+    
+    start_obj = text.find('{')
+    end_obj = text.rfind('}')
+
+    # Pilih yang paling luar
+    start = start_arr if (start_arr != -1 and (start_obj == -1 or start_arr < start_obj)) else start_obj
+    end = end_arr if (end_arr != -1 and (end_obj == -1 or end_arr > end_obj)) else end_obj
+
     if start == -1: return "[]"
     
-    # Jika tidak ada penutup, coba tambahkan
+    # Ambil bagian JSON saja
     if end == -1 or end < start:
-        text = text[start:] + "]"
+        text = text[start:]
     else:
         text = text[start:end+1]
         
-    # Hapus karakter kontrol yang merusak JSON
+    # 3. Hapus karakter kontrol ilegal (0-31) kecuali whitespace standar
     text = "".join(char for char in text if ord(char) >= 32 or char in "\n\r\t")
     
-    return text
+    # 4. Hapus trailing commas yang merusak json.loads
+    text = re.sub(r',\s*([\]}])', r'\1', text)
+    
+    # 5. Jika terpotong di tengah, coba tutup seadanya
+    open_braces = text.count('{') - text.count('}')
+    open_brackets = text.count('[') - text.count(']')
+    
+    if open_braces > 0: text += "}" * open_braces
+    if open_brackets > 0: text += "]" * open_brackets
+    
+    return text.strip()
 
 async def extract_structured_theories(
     text: str, 
@@ -41,17 +71,17 @@ async def extract_structured_theories(
     doc_journal: str = "Tidak tersedia",
     custom_prompt: str = "",
     check_abort: Optional[Callable] = None # NEW
-) -> List[Dict]:
+) -> Dict:
     """
     Menggunakan AI untuk membedah teks PDF menjadi daftar teori terstruktur (JSON).
     Mendukung rotasi kunci API jika satu kunci limit/error.
     """
     if not api_keys_str:
         print("[TheoryProcessor] ❌ API Key kosong.")
-        return []
+        return {"metadata": {}, "theories": []}
 
     keys = [k.strip() for k in api_keys_str.split(',') if k.strip()]
-    if not keys: return []
+    if not keys: return {"metadata": {}, "theories": []}
 
     prov = provider.lower()
     if "gemini" in prov: prov = "gemini"
@@ -61,38 +91,18 @@ async def extract_structured_theories(
 
     final_model = model if (model and model.strip()) else None
     if not final_model:
-      if prov == "gemini": final_model = "gemini-2.5-flash"
+      if prov == "gemini": final_model = "gemini-1.5-flash"
       elif prov == "openai": final_model = "gpt-4o-mini"
       elif prov == "groq": final_model = "llama-3.3-70b-versatile"
       elif prov == "cerebras": final_model = "llama3.3-70b"
       else: final_model = "gpt-4o-mini"
 
-    # 1. Pilih system prompt (Utamakan dari Dart UI)
+    # 1. Pilih system prompt (WAJIB dari Dart UI)
     if custom_prompt and custom_prompt.strip():
-        print("[RAG] 🎯 Menggunakan Prompt v2.2 dari UI Dart.")
+        print("[RAG] 🎯 Menggunakan Prompt kustom dari UI Dart.")
         system_prompt = custom_prompt
     else:
-        # Fallback ke prompt internal
-        # Escape context
-        safe_judul = json.dumps(judul_skripsi or "Tidak ditentukan")[1:-1]
-        safe_lokasi = json.dumps(lokasi_penelitian or "Tidak ditentukan")[1:-1]
-        safe_kerangka = json.dumps(kerangka_skripsi or "Umum")[1:-1]
-        
-        # Escape Document Metadata
-        safe_doc_title = json.dumps(doc_title or "Tidak diketahui")[1:-1]
-        safe_doc_authors = json.dumps(doc_authors or "Tidak diketahui")[1:-1]
-        safe_doc_year = json.dumps(doc_year or "n/a")[1:-1]
-        safe_doc_journal = json.dumps(doc_journal or "Tidak tersedia")[1:-1]
-
-        system_prompt = THEORY_EXTRACTION_PROMPT.format(
-            judul_skripsi=safe_judul,
-            lokasi_penelitian=safe_lokasi,
-            kerangka_skripsi=safe_kerangka,
-            doc_title=safe_doc_title,
-            doc_authors=safe_doc_authors,
-            doc_year=safe_doc_year,
-            doc_journal=safe_doc_journal
-        )
+        raise ValueError("[TheoryProcessor] ❌ Error: Tidak ada prompt yang diberikan dari Flutter. Proses dihentikan.")
     
     user_prompt = f"""DOKUMEN SUMBER:
 ---
@@ -113,7 +123,7 @@ Mulai langsung dengan '['."""
         while retry_count < max_retries:
             if check_abort and check_abort():
                 print("[TheoryProcessor] 🛑 Proses dihentikan (Aborted by user).")
-                return []
+                return {"metadata": {}, "theories": []}
                 
             try:
                 # Naikkan timeout ke 1200 detik (20 menit) agar sinkron dengan Flutter
@@ -123,7 +133,7 @@ Mulai langsung dengan '['."""
                     # ... (logic payload sama)
                     if prov == "gemini":
                         # ... (keep existing gemini payload)
-                        url = f"https://generativelanguage.googleapis.com/v1/models/{final_model}:generateContent?key={api_key}"
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/{final_model}:generateContent?key={api_key}"
                         payload = {
                             "system_instruction": {"parts": [{"text": system_prompt}]},
                             "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
@@ -131,7 +141,13 @@ Mulai langsung dengan '['."""
                                 "temperature": 0.1,
                                 "maxOutputTokens": 16384,
                                 "response_mime_type": "application/json" if "1.5" in final_model else "text/plain"
-                            }
+                            },
+                            "safetySettings": [
+                                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+                            ]
                         }
                     elif prov == "localhost":
                         base_url = api_key if api_key.startswith("http") else "http://localhost:11434"
@@ -142,7 +158,8 @@ Mulai langsung dengan '['."""
                             payload = {
                                 "prompt": f"{system_prompt}\n\n{user_prompt}",
                                 "model": final_model,
-                                "max_tokens": 16384
+                                "max_tokens": 16384,
+                                "stream": False
                             }
                         else:
                             url = base_url.rstrip("/") + "/v1/chat/completions"
@@ -153,7 +170,8 @@ Mulai langsung dengan '['."""
                                     {"role": "user", "content": user_prompt}
                                 ],
                                 "temperature": 0.1,
-                                "max_tokens": 16384
+                                "max_tokens": 16384,
+                                "stream": False
                             }
                     else:
                         # ... (keep existing cloud payload)
@@ -171,7 +189,8 @@ Mulai langsung dengan '['."""
                                 {"role": "user", "content": user_prompt}
                             ],
                             "temperature": 0.1,
-                            "max_tokens": 16384
+                            "max_tokens": 16384,
+                            "stream": False
                         }
 
                     if prov not in ["localhost", "gemini"]:
@@ -184,7 +203,17 @@ Mulai langsung dengan '['."""
                         raw_text = ""
                         
                         if "choices" in data: raw_text = data["choices"][0]["message"]["content"]
-                        elif "candidates" in data: raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+                        elif "candidates" in data:
+                            candidate = data["candidates"][0]
+                            if "content" in candidate:
+                                raw_text = candidate["content"]["parts"][0]["text"]
+                            else:
+                                finish_reason = candidate.get("finishReason", "UNKNOWN")
+                                print(f"[TheoryProcessor] ⚠️ Gemini gagal menghasilkan konten. Reason: {finish_reason}")
+                                if finish_reason == "SAFETY":
+                                    print("[TheoryProcessor] 🛡️ Terblokir filter keamanan Google. Mencoba prompt lebih lunak...")
+                                retry_count += 1
+                                continue
                         elif "result" in data: raw_text = data["result"]
                         elif "message" in data and "content" in data["message"]: raw_text = data["message"]["content"]
                         elif "response" in data: raw_text = data["response"]
@@ -207,15 +236,32 @@ Mulai langsung dengan '['."""
                             clean_text = repair_json_string(raw_text)
                             result = json.loads(clean_text)
                             
-                            if isinstance(result, list) and len(result) > 0:
-                                print(f"[TheoryProcessor] ✅ Sukses! Mengekstrak {len(result)} item.")
-                                return result
-                            elif isinstance(result, list) and len(result) == 0:
+                            # Handle both old (list) and new (dict) formats
+                            metadata = {}
+                            theories = []
+
+                            if isinstance(result, dict):
+                                metadata = result.get("metadata", {})
+                                theories = result.get("theories", [])
+                            elif isinstance(result, list):
+                                theories = result
+                            
+                            if theories:
+                                # Clean up metadata values (strip whitespace)
+                                for item in theories:
+                                    if isinstance(item, dict):
+                                        for k, v in item.items():
+                                            if isinstance(v, str):
+                                                item[k] = v.strip()
+                                                
+                                print(f"[TheoryProcessor] ✅ Sukses! Mengekstrak {len(theories)} item.")
+                                return {"metadata": metadata, "theories": theories}
+                            elif isinstance(theories, list) and len(theories) == 0:
                                 print(f"[TheoryProcessor] ⚠️ AI menghasilkan list kosong. Mencoba lagi...")
                                 retry_count += 1
                                 continue
                             else:
-                                print(f"[TheoryProcessor] ⚠️ Hasil bukan list: {type(result)}")
+                                print(f"[TheoryProcessor] ⚠️ Hasil bukan format yang didukung: {type(result)}")
                                 break
                         except Exception as json_err:
                             print(f"[TheoryProcessor] ❌ Parsing Gagal: {json_err}")
@@ -245,4 +291,4 @@ Mulai langsung dengan '['."""
             await asyncio.sleep(0.5)
 
     print(f"[TheoryProcessor] 💀 Gagal total setelah {max_retries} percobaan atau list kosong.")
-    return []
+    return {"metadata": {}, "theories": []}

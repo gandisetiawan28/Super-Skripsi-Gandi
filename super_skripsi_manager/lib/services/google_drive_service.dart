@@ -9,12 +9,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'secure_storage_service.dart';
 import 'api_config.dart';
+import '../constants/auth_html.dart';
 
 final googleSignInProvider = Provider<auth.GoogleSignIn>((ref) => auth.GoogleSignIn(
   params: auth.GoogleSignInParams(
     clientId: ApiConfig.googleClientId,
     clientSecret: ApiConfig.googleClientSecret,
     scopes: ApiConfig.googleScopes,
+    customPostAuthPage: authSuccessHtml,
   ),
 ));
 

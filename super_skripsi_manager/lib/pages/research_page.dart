@@ -64,7 +64,9 @@ class _ResearchPageState extends ConsumerState<ResearchPage> {
   String? _libraryDirPath;
   bool _isSearchHovered = false;
   final Set<String> _selectedSubBabs = {}; // Set to track multi-selected sub-chapters
+  final Set<String> _indexingFiles = {}; // Guard for concurrent indexing
   String? _selectedFilterBab; // Track which Bab is currently active for filtering
+  bool _showSubBabDetails = true; // Toggle to collapse/expand sub-chapter list
 
 
   final _searchController = TextEditingController();
@@ -316,68 +318,71 @@ class _ResearchPageState extends ConsumerState<ResearchPage> {
   }
   /// Index dokumen ke Python RAG service (dipanggil di background setelah proses AI berhasil)
   Future<void> _indexToRag(String filePath) async {
+    // Avoid double indexing the same file
+    if (_indexingFiles.contains(filePath)) return;
+    
     final ragState = ref.read(ragStateProvider);
-    if (!ragState.isActive) return; // Skip jika RAG tidak aktif
-
-    // Cari dokumen di database berdasarkan filePath
-    final docs = ref.read(documentsProvider).value ?? [];
-    DocumentModel? doc;
-    try {
-      doc = docs.firstWhere(
-        (d) => d.filePath == filePath || (d.renamedFileName.isNotEmpty && filePath.endsWith(d.renamedFileName)),
+    if (!ragState.isActive) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Layanan RAG sedang tidak aktif. Silakan aktifkan di Settings.')),
       );
-    } catch (_) {
-      // Dokumen belum ada di DB (proses AI mungkin belum selesai) — coba lagi
-      await Future.delayed(const Duration(seconds: 2));
-      final updatedDocs = ref.read(documentsProvider).value ?? [];
+      return;
+    }
+    
+    setState(() => _indexingFiles.add(filePath));
+    final processNotifier = ref.read(researchProcessProvider.notifier);
+
+    try {
+      // Cari dokumen di database berdasarkan filePath
+      final docs = ref.read(documentsProvider).value ?? [];
+      DocumentModel? doc;
+      
       try {
-        doc = updatedDocs.firstWhere(
+        doc = docs.firstWhere(
           (d) => d.filePath == filePath || (d.renamedFileName.isNotEmpty && filePath.endsWith(d.renamedFileName)),
         );
       } catch (_) {
-        return; // Tidak ketemu, skip
+        // Dokumen belum ada di DB (proses AI mungkin belum selesai) — coba lagi
+        await Future.delayed(const Duration(seconds: 2));
+        final updatedDocs = ref.read(documentsProvider).value ?? [];
+        try {
+          doc = updatedDocs.firstWhere(
+            (d) => d.filePath == filePath || (d.renamedFileName.isNotEmpty && filePath.endsWith(d.renamedFileName)),
+          );
+        } catch (_) {
+          processNotifier.addLog('❌ Gagal: Dokumen belum terdaftar di database.');
+          return;
+        }
       }
-    }
 
-    if (doc == null) return;
+      if (doc == null) return;
 
-    final processNotifier = ref.read(researchProcessProvider.notifier);
-    
-    // Aktifkan status processing agar tombol STOP muncul di log
-    processNotifier.setProcessing(true);
-    processNotifier.resetStopRequest();
-    processNotifier.addLog('📤 Indexing ke semantic RAG...');
+      // Aktifkan status processing agar tombol STOP muncul di log
+      processNotifier.setProcessing(true);
+      processNotifier.resetStopRequest();
+      processNotifier.addLog('📤 Indexing ke semantic RAG...');
 
-    // Pengecekan awal jika user sudah menekan stop
-    if (ref.read(researchProcessProvider).stopRequested) {
-      processNotifier.addLog('⏹️ Indexing dibatalkan oleh user.');
-      processNotifier.setProcessing(false);
-      return;
-    }
+      // Ambil SEMUA kunci API yang tersedia untuk provider ini (untuk rotasi)
+      final aiSettings = ref.read(aiExtractionSettingsProvider);
+      final selectedProvider = aiSettings.provider ?? 'Google Gemini';
+      
+      final allKeys = ref.read(apiKeysProvider);
+      final providerKeys = allKeys[selectedProvider] ?? [];
+      
+      // Gabungkan semua key dengan koma untuk dikirim ke Python (Rotation Support)
+      final apiKeyString = providerKeys.map((k) => k['key']).whereType<String>().join(',');
+      final apiKey = apiKeyString.isNotEmpty ? apiKeyString : (selectedProvider == 'Localhost' ? 'http://localhost:3000/' : null);
 
-    // Ambil SEMUA kunci API yang tersedia untuk provider ini (untuk rotasi)
-    final aiSettings = ref.read(aiExtractionSettingsProvider);
-    final selectedProvider = aiSettings.provider ?? 'Google Gemini';
-    
-    final allKeys = ref.read(apiKeysProvider);
-    final providerKeys = allKeys[selectedProvider] ?? [];
-    
-    // Gabungkan semua key dengan koma untuk dikirim ke Python (Rotation Support)
-    final apiKeyString = providerKeys.map((k) => k['key']).whereType<String>().join(',');
-    final apiKey = apiKeyString.isNotEmpty ? apiKeyString : (selectedProvider == 'Localhost' ? 'http://localhost:3000/' : null);
+      if (apiKey == null || apiKey.isEmpty) {
+        processNotifier.addLog('❌ Indexing Gagal: API Key untuk $selectedProvider belum diatur.');
+        processNotifier.setProcessing(false);
+        return;
+      }
 
-    if (apiKey == null || apiKey.isEmpty) {
-      processNotifier.addLog('❌ Indexing Gagal: API Key untuk $selectedProvider belum diatur.');
-      processNotifier.addLog('💡 Silakan atur API Key di Settings terlebih dahulu.');
-      processNotifier.setProcessing(false);
-      return;
-    }
+      processNotifier.addLog('🤖 AI sedang membedah teori & sitasi (MANDATORY)...');
+      processNotifier.addLog('⏳ Mohon tunggu, proses ini memakan waktu +/- 30 detik...');
 
-    processNotifier.addLog('🤖 AI sedang membedah teori & sitasi (MANDATORY)...');
-    processNotifier.addLog('⏳ Mohon tunggu, proses ini memakan waktu +/- 30 detik...');
-
-    try {
-      final error = await ref.read(ragStateProvider.notifier).indexDocument(
+      final result = await ref.read(ragStateProvider.notifier).indexDocument(
         filePath: filePath,
         docId: doc.id,
         title: doc.title,
@@ -386,7 +391,7 @@ class _ResearchPageState extends ConsumerState<ResearchPage> {
         journalName: doc.journalName,
         apiKey: apiKey,
         provider: selectedProvider,
-        model: aiSettings.model ?? 'gemini-2.5-flash',
+        model: aiSettings.model ?? 'gemini-1.5-flash',
         judulSkripsi: ref.read(researchBlueprintProvider).judul,
         lokasiPenelitian: ref.read(researchBlueprintProvider).lokasi,
         kerangkaSkripsi: ref.read(researchBlueprintProvider).kerangkaAsText,
@@ -404,43 +409,38 @@ class _ResearchPageState extends ConsumerState<ResearchPage> {
         ),
       );
       
-      // Cek apakah user menekan stop saat proses sedang berjalan
-      if (ref.read(researchProcessProvider).stopRequested) {
-        processNotifier.addLog('⏹️ Sinyal pembatalan dikirim ke Python & AI Bridge.');
-      }
+      final error = result?['error'];
+      final aiMeta = result?['metadata'] as Map<String, dynamic>?;
 
-      // Pengecekan jika terjadi error atau stop
       if (ref.read(researchProcessProvider).stopRequested || error != null) {
-        // Otomatis kirim sinyal stop ke bridge jika gagal/stop
         await ref.read(ragStateProvider.notifier).abortIndexing();
-        
         if (ref.read(researchProcessProvider).stopRequested) {
-          processNotifier.addLog('⏹️ Sinyal pembatalan dikirim ke Python & AI Bridge.');
+          processNotifier.addLog('⏹️ Proses RAG dihentikan di tengah jalan.');
         } else {
-          processNotifier.addLog('🧹 Error terdeteksi: Otomatis membersihkan antrean AI Bridge...');
+          processNotifier.addLog('⚠️ RAG index gagal: $error');
         }
-      }
-
-      if (ref.read(researchProcessProvider).stopRequested) {
-         processNotifier.addLog('⏹️ Proses RAG dihentikan di tengah jalan.');
-      } else if (error == null) {
-        processNotifier.addLog('🧠 Berhasil diindex ke ChromaDB (semantic search aktif)');
       } else {
-        processNotifier.addLog('⚠️ RAG index gagal: $error');
-        if (!error.contains('Timeout')) {
-          processNotifier.addLog('Akan tetap tersedia via keyword search (TF-IDF).');
+        processNotifier.addLog('🧠 Berhasil diindex ke ChromaDB (semantic search aktif)');
+        
+        // [PASARAN] Update metadata di database lokal jika ada hasil baru dari AI
+        if (aiMeta != null && aiMeta.isNotEmpty) {
+           processNotifier.addLog('📝 Sinkronisasi metadata bibliografi...');
+           try {
+             await ref.read(documentsProvider.notifier).updateDocumentMetadata(doc, aiMeta);
+             processNotifier.addLog('✅ Metadata bibliografi diperbarui.');
+           } catch (e) {
+             processNotifier.addLog('⚠️ Gagal update metadata lokal: $e');
+           }
         }
       }
     } catch (e) {
-      // Otomatis bersihkan jika fatal error
       await ref.read(ragStateProvider.notifier).abortIndexing();
       processNotifier.addLog('❌ Fatal error saat RAG: $e');
-      processNotifier.addLog('🧹 Otomatis membersihkan antrean AI Bridge...');
     } finally {
       processNotifier.setProcessing(false);
+      setState(() => _indexingFiles.remove(filePath));
+      ref.invalidate(indexedDocsProvider);
     }
-    // Refresh daftar indexed docs agar badge muncul
-    ref.invalidate(indexedDocsProvider);
   }
 
 
@@ -1249,9 +1249,12 @@ class _ResearchPageState extends ConsumerState<ResearchPage> {
   }
 
   Widget _buildDocumentCard(DocumentModel doc, List<String> indexedIds, int index) {
+    final isIndexing = _indexingFiles.contains(doc.filePath);
+
     return _DocumentCardItem(
       doc: doc,
       isIndexed: indexedIds.contains(doc.id),
+      isIndexing: isIndexing,
       onEdit: () => _showEditDocDialog(doc),
       onDelete: () => ref.read(documentsProvider.notifier).deleteDocument(doc.id, doc.filePath),
       onExtract: (file) => _indexToRag(file.path),
@@ -1283,6 +1286,17 @@ class _ResearchPageState extends ConsumerState<ResearchPage> {
               Text('Filter Berdasarkan Struktur Skripsi',
                   style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: GlassmorphismTheme.textPrimary)),
               const Spacer(),
+              // Toggle Expand/Collapse Sub-Chapters
+              if (_selectedFilterBab != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: TextButton.icon(
+                    onPressed: () => setState(() => _showSubBabDetails = !_showSubBabDetails),
+                    icon: Icon(_showSubBabDetails ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 18, color: Colors.blueAccent),
+                    label: Text(_showSubBabDetails ? 'Sembunyikan Detail' : 'Tampilkan Detail', 
+                      style: GoogleFonts.inter(fontSize: 11, color: Colors.blueAccent)),
+                  ),
+                ),
               if (_selectedFilterBab != null || _selectedSubBabs.isNotEmpty)
                 TextButton(
                   onPressed: () {
@@ -1316,91 +1330,85 @@ class _ResearchPageState extends ConsumerState<ResearchPage> {
                   onTap: () => setState(() {
                     _selectedFilterBab = bab.babLabel;
                     _selectedSubBabs.clear();
+                    _showSubBabDetails = true; // Auto expand saat pilih bab
                   }),
                 )),
               ],
             ),
           ),
 
-          // Sub-Chapters (Multi-select)
-          if (_selectedFilterBab != null) ...[
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Divider(height: 1, color: Colors.white10),
-            ),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+          // Sub-Chapters (Multi-select) with Animation
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _selectedFilterBab != null && _showSubBabDetails ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Tombol Pilih Semua
-                _buildSubChapterChip(
-                  label: "Pilih Semua",
-                  isSelected: _selectedSubBabs.length == blueprint.structure
-                      .firstWhere((b) => b.babLabel == _selectedFilterBab)
-                      .subChapters.length,
-                  onTap: () {
-                    final currentSubBabs = blueprint.structure
-                        .firstWhere((b) => b.babLabel == _selectedFilterBab)
-                        .subChapters;
-                    setState(() {
-                      if (_selectedSubBabs.length == currentSubBabs.length) {
-                        _selectedSubBabs.clear();
-                      } else {
-                        _selectedSubBabs.addAll(currentSubBabs);
-                      }
-                    });
-                  },
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(height: 1, color: Colors.white10),
                 ),
-                ...blueprint.structure
-                    .firstWhere((b) => b.babLabel == _selectedFilterBab)
-                    .subChapters
-                    .map((sub) {
-                    final isSelected = _selectedSubBabs.contains(sub);
-                    return _buildSubChapterChip(
-                      label: sub,
-                      isSelected: isSelected,
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    // Tombol Pilih Semua
+                    _buildSubChapterChip(
+                      label: "Pilih Semua",
+                      isSelected: _selectedSubBabs.length == blueprint.structure
+                          .firstWhere((b) => b.babLabel == _selectedFilterBab)
+                          .subChapters.length,
                       onTap: () {
+                        final currentSubBabs = blueprint.structure
+                            .firstWhere((b) => b.babLabel == _selectedFilterBab)
+                            .subChapters;
                         setState(() {
-                          if (isSelected) {
-                            _selectedSubBabs.remove(sub);
+                          if (_selectedSubBabs.length == currentSubBabs.length) {
+                            _selectedSubBabs.clear();
                           } else {
-                            _selectedSubBabs.add(sub);
+                            _selectedSubBabs.addAll(currentSubBabs);
                           }
                         });
                       },
-                    );
-                  }).toList(),
+                    ),
+                    ...blueprint.structure
+                        .firstWhere((b) => b.babLabel == _selectedFilterBab)
+                        .subChapters
+                        .map((sub) {
+                        final isSelected = _selectedSubBabs.contains(sub);
+                        return _buildSubChapterChip(
+                          label: sub,
+                          isSelected: isSelected,
+                          onTap: () {
+                            setState(() {
+                              if (isSelected) {
+                                _selectedSubBabs.remove(sub);
+                              } else {
+                                _selectedSubBabs.add(sub);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                  ],
+                ),
               ],
-            ),
-          ],
+            ) : const SizedBox(width: double.infinity, height: 0),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildFilterChip({required String label, required bool isSelected, required VoidCallback onTap}) {
-    return GestureDetector(
+    return _HoverableChip(
+      isSelected: isSelected,
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? GlassmorphismTheme.primaryRed : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? GlassmorphismTheme.primaryRed : Colors.white.withOpacity(0.1),
-          ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : GlassmorphismTheme.textSecondary,
-          ),
-        ),
-      ),
+      label: label,
+      activeColor: GlassmorphismTheme.primaryRed,
+      fontSize: 12,
+      borderRadius: 12,
+      margin: const EdgeInsets.only(right: 12),
     );
   }
 
@@ -1409,35 +1417,15 @@ class _ResearchPageState extends ConsumerState<ResearchPage> {
     final level = (label.length - label.trimLeft().length) ~/ 2;
     final cleanLabel = label.trim();
 
-    return GestureDetector(
+    return _HoverableChip(
+      isSelected: isSelected,
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blueAccent.withOpacity(0.2) : Colors.white.withOpacity(0.03),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? Colors.blueAccent.withOpacity(0.5) : Colors.white.withOpacity(0.05),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isSelected) 
-              const Icon(Icons.check_rounded, size: 14, color: Colors.blueAccent),
-            if (isSelected) const SizedBox(width: 6),
-            Text(
-              cleanLabel,
-              style: GoogleFonts.inter(
-                fontSize: 11 - (level * 0.5),
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? Colors.blueAccent : GlassmorphismTheme.textSecondary.withOpacity(0.8),
-              ),
-            ),
-          ],
-        ),
-      ),
+      label: cleanLabel,
+      activeColor: GlassmorphismTheme.primaryRed,
+      fontSize: 11 - (level * 0.5),
+      borderRadius: 8,
+      showCheck: true,
+      level: level,
     );
   }
 
@@ -1689,6 +1677,7 @@ class _PendingFileCardState extends State<_PendingFileCard> with SingleTickerPro
 class _DocumentCardItem extends StatefulWidget {
   final DocumentModel doc;
   final bool isIndexed;
+  final bool isIndexing;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final Function(File) onExtract;
@@ -1701,6 +1690,7 @@ class _DocumentCardItem extends StatefulWidget {
   const _DocumentCardItem({
     required this.doc,
     required this.isIndexed,
+    required this.isIndexing,
     required this.onEdit,
     required this.onDelete,
     required this.onExtract,
@@ -1982,10 +1972,11 @@ class _DocumentCardItemState extends State<_DocumentCardItem> with SingleTickerP
                       runSpacing: 4,
                       children: [
                         _buildCardAction(
-                          icon: Icons.psychology_rounded,
-                          label: 'Ekstrak Teori (RAG)',
+                          icon: widget.isIndexing ? Icons.hourglass_empty_rounded : Icons.psychology_rounded,
+                          label: widget.isIndexing ? 'Sedang Diproses...' : 'Ekstrak Teori (RAG)',
                           color: const Color(0xFF6366f1),
-                          onTap: () => pdfFile != null ? widget.onExtract(pdfFile) : null,
+                          onTap: (pdfFile != null && !widget.isIndexing) ? () => widget.onExtract(pdfFile) : null,
+                          isLoading: widget.isIndexing,
                         ),
                         if (pdfFile != null)
                           _buildCardAction(
@@ -2060,8 +2051,9 @@ class _DocumentCardItemState extends State<_DocumentCardItem> with SingleTickerP
     required Color color,
     VoidCallback? onTap,
     String? tooltip,
+    bool isLoading = false,
   }) {
-    final bool isDisabled = onTap == null;
+    final bool isDisabled = onTap == null || isLoading;
     return Tooltip(
       message: tooltip ?? label,
       child: InkWell(
@@ -2080,7 +2072,13 @@ class _DocumentCardItemState extends State<_DocumentCardItem> with SingleTickerP
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 14, color: isDisabled ? Colors.grey : color),
+              if (isLoading)
+                const Padding(
+                  padding: EdgeInsets.only(right: 6),
+                  child: SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6366f1))),
+                )
+              else
+                Icon(icon, size: 14, color: isDisabled ? Colors.grey : color),
               const SizedBox(width: 6),
               Text(
                 label,
@@ -2088,6 +2086,85 @@ class _DocumentCardItemState extends State<_DocumentCardItem> with SingleTickerP
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: isDisabled ? Colors.grey : color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HoverableChip extends StatefulWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final Color activeColor;
+  final double fontSize;
+  final double borderRadius;
+  final bool showCheck;
+  final int level;
+  final EdgeInsetsGeometry? margin;
+
+  const _HoverableChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    required this.activeColor,
+    required this.fontSize,
+    required this.borderRadius,
+    this.showCheck = false,
+    this.level = 0,
+    this.margin,
+  });
+
+  @override
+  State<_HoverableChip> createState() => _HoverableChipState();
+}
+
+class _HoverableChipState extends State<_HoverableChip> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: widget.margin,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: widget.isSelected 
+                ? widget.activeColor 
+                : (_isHovered ? widget.activeColor.withOpacity(0.15) : Colors.white.withOpacity(0.05)),
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            border: Border.all(
+              color: widget.isSelected 
+                  ? widget.activeColor 
+                  : (_isHovered ? widget.activeColor.withOpacity(0.4) : Colors.white.withOpacity(0.1)),
+            ),
+            boxShadow: widget.isSelected && _isHovered
+                ? [BoxShadow(color: widget.activeColor.withOpacity(0.4), blurRadius: 8, spreadRadius: 1)]
+                : [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.showCheck && widget.isSelected) ...[
+                const Icon(Icons.check_rounded, size: 14, color: Colors.white),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                widget.label,
+                style: GoogleFonts.inter(
+                  fontSize: widget.fontSize,
+                  fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: widget.isSelected ? Colors.white : (_isHovered ? widget.activeColor : GlassmorphismTheme.textSecondary),
                 ),
               ),
             ],

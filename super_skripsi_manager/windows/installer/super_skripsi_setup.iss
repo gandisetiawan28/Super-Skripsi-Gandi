@@ -3,7 +3,7 @@
   #define MyAppVersion GetEnv("MyAppVersion")
 #endif
 #if MyAppVersion == ""
-  #define MyAppVersion "1.1.25"
+  #define MyAppVersion "1.1.26"
 #endif
 #define MyAppPublisher "Gandi Setiawan"
 #define MyAppExeName "super_skripsi_manager.exe"
@@ -46,6 +46,7 @@ Source: "..\..\..\super_skripsi_extension\*"; DestDir: "{app}\extension"; Flags:
 ; Word Add-in (Built files only)
 Source: "..\..\..\super_skripsi_addin\dist\*"; DestDir: "{app}\addin"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\..\..\super_skripsi_addin\manifest.xml"; DestDir: "{app}\addin"; Flags: ignoreversion
+Source: "..\..\..\super_skripsi_addin\install_addin.bat"; DestDir: "{app}\addin"; Flags: ignoreversion
 
 ; Portable Node.js (Akan diunduh oleh CI/CD ke folder 'node')
 Source: "..\..\..\node\*"; DestDir: "{app}\node"; Flags: ignoreversion recursesubdirs createallsubdirs

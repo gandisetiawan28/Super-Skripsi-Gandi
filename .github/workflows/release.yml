@@ -70,9 +70,10 @@ jobs:
           Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip" -OutFile "python_embed.zip"
           Expand-Archive -Path "python_embed.zip" -DestinationPath $portableDir -Force
 
-          # 2. Enable site-packages in .pth file
+          # 2. Enable site-packages in .pth file and add parent dir to path
           $pthFile = "$portableDir/python311._pth"
           (Get-Content $pthFile) -replace "#import site", "import site" | Set-Content $pthFile
+          Add-Content -Path $pthFile -Value ".."
 
           # 3. Download and Install PIP
           Write-Host "Installing PIP..."

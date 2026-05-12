@@ -96,10 +96,10 @@ if %errorlevel% neq 0 (
 echo [OK] Installer .EXE berhasil dibuat di folder 'Output'.
 
 echo.
-echo [5/5] Sinkronisasi ke GitHub...
+echo [5/5] Sinkronisasi ke GitHub (Skip CI)...
 cd ..
 git add .
-git commit -m "release: v!VERSION! (local stable build)"
+git commit -m "release: v!VERSION! (local stable build) [skip ci]"
 git push origin main
 
 echo.
@@ -108,7 +108,7 @@ echo [6/6] Mengunggah Installer ke GitHub Release (Otomatis)...
 set "GH_PATH="
 where gh >nul 2>nul
 if %errorlevel% neq 0 (
-    echo [!] PERINGATAN: GitHub CLI (gh) tidak ditemukan.
+    echo [!] PERINGATAN: GitHub CLI gh tidak ditemukan.
     echo Anda harus mengunggah file .exe secara manual.
 ) else (
     echo [OK] GitHub CLI terdeteksi. Memulai proses upload...

@@ -93,6 +93,44 @@ jobs:
           Remove-Item "python_embed.zip" -Force
           Write-Host "Portable Python Environment Ready & Optimized!"
 
+      # --- BUILD WORD ADD-IN ---
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: super_skripsi_addin/package-lock.json
+
+      - name: Build Word Add-in
+        run: |
+          cd super_skripsi_addin
+          npm install
+          npm run build
+
+      - name: Setup API Bridge Production Dependencies
+        run: |
+          cd super_skripsi_extension/api-bridge
+          npm install --production
+
+      # --- SETUP PORTABLE NODE.JS ---
+      - name: Setup Portable Node.js
+        shell: pwsh
+        run: |
+          $nodeDir = "node"
+          New-Item -ItemType Directory -Force -Path $nodeDir
+          
+          Write-Host "Downloading Portable Node.js..."
+          Invoke-WebRequest -Uri "https://nodejs.org/dist/v20.12.2/node-v20.12.2-win-x64.zip" -OutFile "node.zip"
+          Expand-Archive -Path "node.zip" -DestinationPath "node_temp" -Force
+          
+          # Move files from subfolder to root of 'node'
+          Move-Item -Path "node_temp\node-v20.12.2-win-x64\*" -Destination $nodeDir -Force
+          
+          # Clean up
+          Remove-Item "node.zip" -Force
+          Remove-Item "node_temp" -Recurse -Force
+          Write-Host "Portable Node.js Ready!"
+
       - name: Compile Inno Setup
         shell: pwsh
         run: |

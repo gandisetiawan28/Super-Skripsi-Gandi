@@ -3,7 +3,7 @@
   #define MyAppVersion GetEnv("MyAppVersion")
 #endif
 #if MyAppVersion == ""
-  #define MyAppVersion "1.1.23"
+  #define MyAppVersion "1.1.25"
 #endif
 #define MyAppPublisher "Gandi Setiawan"
 #define MyAppExeName "super_skripsi_manager.exe"
@@ -37,15 +37,34 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; Utama Flutter App
 Source: "..\..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-; Folder Python RAG Backend (Sudah termasuk python_portable yang siap pakai)
+; Folder Python RAG Backend
 Source: "..\..\..\super_skripsi_rag\*"; DestDir: "{app}\rag"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__\*, .venv\*, .git\*"
+
+; Browser Extension & API Bridge
+Source: "..\..\..\super_skripsi_extension\*"; DestDir: "{app}\extension"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "api-bridge\node_modules\*"
+
+; Word Add-in (Built files only)
+Source: "..\..\..\super_skripsi_addin\dist\*"; DestDir: "{app}\addin"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\..\super_skripsi_addin\manifest.xml"; DestDir: "{app}\addin"; Flags: ignoreversion
+
+; Portable Node.js (Akan diunduh oleh CI/CD ke folder 'node')
+Source: "..\..\..\node\*"; DestDir: "{app}\node"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[Registry]
+; Daftarkan folder Add-in ke Trusted Catalogs Office (agar muncul otomatis di Word)
+Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\Word\Trusted Catalogs\{{a8b2c3d4-e5f6-7890-abcd-ef1234567890}"; ValueType: string; ValueName: "URL"; ValueData: "{app}\addin"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\Word\Trusted Catalogs\{{a8b2c3d4-e5f6-7890-abcd-ef1234567890}"; ValueType: dword; ValueName: "Flags"; ValueData: "1"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\Word\Trusted Catalogs\{{a8b2c3d4-e5f6-7890-abcd-ef1234567890}"; ValueType: dword; ValueName: "Id"; ValueData: "1"; Flags: uninsdeletekey
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-; Langsung jalankan aplikasi, tidak perlu instal Python/Pip lagi karena sudah portable
+; Install API Bridge dependencies (jika diperlukan, namun sebaiknya sudah dipre-build)
+; Filename: "{app}\node\node.exe"; Parameters: """{app}\node\node_modules\npm\bin\npm-cli.js"" install --production"; WorkingDir: "{app}\extension\api-bridge"; Flags: runhidden
+
+; Langsung jalankan aplikasi
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]

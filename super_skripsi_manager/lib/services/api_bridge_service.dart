@@ -1,10 +1,34 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 
 class ApiBridgeService with ChangeNotifier {
   Process? _process;
-  final String _serverPath = 'D:\\SUPER SKRIPSI GANDI\\super_skripsi_extension\\api-bridge\\server.js';
+  
+  String get _serverPath {
+    if (kDebugMode) {
+      return 'D:\\SUPER SKRIPSI GANDI\\super_skripsi_extension\\api-bridge\\server.js';
+    }
+    // Production path: {app}/extension/api-bridge/server.js
+    final exePath = Platform.resolvedExecutable;
+    final exeDir = p.dirname(exePath);
+    return p.join(exeDir, 'extension', 'api-bridge', 'server.js');
+  }
+
+  String get _nodeExecutable {
+    if (kDebugMode) return 'node';
+    
+    // Check for portable node in {app}/node/node.exe
+    final exePath = Platform.resolvedExecutable;
+    final exeDir = p.dirname(exePath);
+    final portableNode = p.join(exeDir, 'node', 'node.exe');
+    
+    if (File(portableNode).existsSync()) {
+      return portableNode;
+    }
+    return 'node'; // Fallback to system node
+  }
 
   bool _isIntentionalStop = false;
 
@@ -27,11 +51,17 @@ class ApiBridgeService with ChangeNotifier {
     }
 
     try {
-      debugPrint('[ApiBridge] Starting Node.js server at $_serverPath...');
+      final path = _serverPath;
+      if (!File(path).existsSync()) {
+        debugPrint('[ApiBridge ERROR] Server file not found at: $path');
+        return;
+      }
+
+      debugPrint('[ApiBridge] Starting Node.js server at $path...');
       
       _process = await Process.start(
-        'node',
-        [_serverPath],
+        _nodeExecutable,
+        [path],
         runInShell: true,
       );
       notifyListeners();

@@ -13,6 +13,10 @@ class AddinLauncherService {
 
   Future<void> startDevServer() async {
     if (_isRunning) return;
+    if (!kDebugMode) {
+      debugPrint('Add-in dev server is disabled in production. Use the static version served by the bridge.');
+      return;
+    }
 
     try {
       // Get the directory of the addin project

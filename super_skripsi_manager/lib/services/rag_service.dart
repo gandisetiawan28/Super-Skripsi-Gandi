@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
+import 'package:flutter/foundation.dart';
 
 /// Platform service untuk komunikasi dengan Python RAG Microservice
 /// yang berjalan di http://localhost:28146
@@ -307,17 +308,28 @@ class RagService {
 
   /// Temukan direktori super_skripsi_rag relatif terhadap exe.
   String? _findRagServiceDir() {
+    final exePath = Platform.resolvedExecutable;
+    final exeDir = p.dirname(exePath);
+    
     final candidates = [
+      // Development paths
       p.join(Directory.current.path, '..', 'super_skripsi_rag'),
       p.join(Directory.current.path, 'super_skripsi_rag'),
-      p.join(File(Platform.resolvedExecutable).parent.path, '..', 'super_skripsi_rag'),
-      p.join(File(Platform.resolvedExecutable).parent.path, 'data', 'flutter_assets', 'super_skripsi_rag'),
-      r'D:\SUPER SKRIPSI GANDI\super_skripsi_rag',
+      
+      // Production paths (Inno Setup puts it in {app}\rag)
+      p.join(exeDir, 'rag'),
+      p.join(exeDir, '..', 'rag'),
+      p.join(exeDir, 'data', 'flutter_assets', 'rag'),
+      
+      // Fallback for debug (Only if it exists)
+      if (kDebugMode) r'D:\SUPER SKRIPSI GANDI\super_skripsi_rag',
     ];
 
     for (final candidate in candidates) {
+      if (candidate == null) continue;
       final dir = Directory(p.normalize(candidate));
       if (dir.existsSync() && File(p.join(dir.path, 'main.py')).existsSync()) {
+        debugPrint('[RAG] Found RAG service directory at: ${dir.path}');
         return dir.path;
       }
     }

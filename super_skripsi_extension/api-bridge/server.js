@@ -13,6 +13,15 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const PORT = process.env.PORT || 3000;
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+// Serve Add-in static files
+const addinPath = IS_PROD 
+  ? path.join(__dirname, '..', '..', 'addin') 
+  : path.join(__dirname, '..', '..', 'super_skripsi_addin', 'dist');
+
+app.use('/addin', express.static(addinPath));
+console.log(`[BRIDGE] Serving Add-in from: ${addinPath}`);
 
 // --- State ---
 const pendingQueues = {};   

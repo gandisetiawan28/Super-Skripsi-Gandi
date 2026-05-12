@@ -105,13 +105,23 @@ git push origin main
 echo.
 echo [6/6] Mengunggah Installer ke GitHub Release (Otomatis)...
 :: Cek apakah GitHub CLI (gh) terinstal
-set "GH_PATH="
+set "GH_EXE=gh"
 where gh >nul 2>nul
 if %errorlevel% neq 0 (
-    echo [!] PERINGATAN: GitHub CLI gh tidak ditemukan.
-    echo Anda harus mengunggah file .exe secara manual.
-) else (
-    echo [OK] GitHub CLI terdeteksi. Memulai proses upload...
+    if exist "C:\Program Files\GitHub CLI\gh.exe" (
+        set "GH_EXE=C:\Program Files\GitHub CLI\gh.exe"
+    ) else if exist "%LocalAppData%\Programs\GitHub CLI\gh.exe" (
+        set "GH_EXE=%LocalAppData%\Programs\GitHub CLI\gh.exe"
+    ) else (
+        echo [!] PERINGATAN: GitHub CLI gh tidak ditemukan.
+        echo Silakan instal ulang atau tambahkan ke PATH.
+        pause
+        exit /b 1
+    )
+)
+
+echo [OK] GitHub CLI terdeteksi: !GH_EXE!
+echo Memulai proses upload...
     
     :: Pastikan kita berada di root folder untuk Git commands
     git tag -a v!VERSION! -m "Release v!VERSION!" >nul 2>&1
@@ -121,7 +131,7 @@ if %errorlevel% neq 0 (
     set "EXE_FILE=super_skripsi_manager\windows\installer\Output\SuperSkripsi_Setup_v!VERSION!.exe"
     
     if exist "!EXE_FILE!" (
-        gh release create v!VERSION! "!EXE_FILE!" --title "Release v!VERSION!" --notes "Automated local stable build for v!VERSION!" --repo gandisetiawan28/Super_Skripsi_Gandi
+        "!GH_EXE!" release create v!VERSION! "!EXE_FILE!" --title "Release v!VERSION!" --notes "Automated local stable build for v!VERSION!" --repo gandisetiawan28/Super_Skripsi_Gandi
         
         if %errorlevel% equ 0 (
             echo [OK] BERHASIL! File telah diunggah ke GitHub Release.

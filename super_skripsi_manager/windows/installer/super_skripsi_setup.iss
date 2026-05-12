@@ -40,8 +40,8 @@ Source: "..\..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ign
 ; Folder Python RAG Backend
 Source: "..\..\..\super_skripsi_rag\*"; DestDir: "{app}\rag"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__\*, .venv\*, .git\*"
 
-; Browser Extension & API Bridge
-Source: "..\..\..\super_skripsi_extension\*"; DestDir: "{app}\extension"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "api-bridge\node_modules\*"
+; Browser Extension & API Bridge (PENTING: node_modules harus disertakan agar Add-in Word jalan)
+Source: "..\..\..\super_skripsi_extension\*"; DestDir: "{app}\extension"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "api-bridge\.git\*"
 
 ; Word Add-in (Built files only)
 Source: "..\..\..\super_skripsi_addin\dist\*"; DestDir: "{app}\addin"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -51,11 +51,19 @@ Source: "..\..\..\super_skripsi_addin\install_addin.bat"; DestDir: "{app}\addin"
 ; Portable Node.js (Akan diunduh oleh CI/CD ke folder 'node')
 Source: "..\..\..\node\*"; DestDir: "{app}\node"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+; Script Python Tambahan (Penting untuk Ekstraksi PDF & Generate Soal)
+Source: "..\..\lib\scripts\*"; DestDir: "{app}\lib\scripts"; Flags: ignoreversion recursesubdirs createallsubdirs
+
 [Registry]
 ; Daftarkan folder Add-in ke Trusted Catalogs Office (agar muncul otomatis di Word)
 Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\Word\Trusted Catalogs\{{a8b2c3d4-e5f6-7890-abcd-ef1234567890}"; ValueType: string; ValueName: "URL"; ValueData: "{app}\addin"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\Word\Trusted Catalogs\{{a8b2c3d4-e5f6-7890-abcd-ef1234567890}"; ValueType: dword; ValueName: "Flags"; ValueData: "1"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\Word\Trusted Catalogs\{{a8b2c3d4-e5f6-7890-abcd-ef1234567890}"; ValueType: dword; ValueName: "Id"; ValueData: "1"; Flags: uninsdeletekey
+
+; Tambahkan ke Trusted Locations agar tidak diblokir keamanan Word
+Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\Registration\Trusted Locations\SuperSkripsi"; ValueType: string; ValueName: "Path"; ValueData: "{app}\addin"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\Registration\Trusted Locations\SuperSkripsi"; ValueType: dword; ValueName: "AllowSubfolders"; ValueData: "1"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\Registration\Trusted Locations\SuperSkripsi"; ValueType: string; ValueName: "Description"; ValueData: "Super Skripsi Gandi Add-in"; Flags: uninsdeletekey
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

@@ -59,9 +59,11 @@ class ApiBridgeService with ChangeNotifier {
 
       debugPrint('[ApiBridge] Starting Node.js server at $path...');
       
+      final workingDir = p.dirname(path);
       _process = await Process.start(
         _nodeExecutable,
         [path],
+        workingDirectory: workingDir,
         runInShell: true,
       );
       notifyListeners();

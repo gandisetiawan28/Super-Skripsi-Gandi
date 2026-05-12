@@ -42,31 +42,93 @@ del linter_output.txt
 echo [OK] Kode bersih.
 
 echo.
-echo [4/5] Simulasi Build Windows (Mencegah Error GitHub)...
+echo [4/5] Memulai Proses Kompilasi Lokal (Cepat)...
+echo.
+echo [4.1] Membangun Word Add-in (npm run build)...
+cd ..\super_skripsi_addin
+call npm run build > nul 2>&1
+if %errorlevel% neq 0 (
+    echo [!] ERROR: Gagal membangun Word Add-in. Pastikan Node.js terinstal.
+    pause
+    exit /b 1
+)
+echo [OK] Word Add-in siap.
+
+echo.
+echo [4.2] Membangun Flutter Windows App...
+cd ..\super_skripsi_manager
 echo Membersihkan cache lama agar akurat...
 call flutter clean > nul 2>&1
-echo Harap tunggu, ini memastikan rilis Anda 100%% aman...
+echo Harap tunggu, sedang membangun binary Windows...
 call flutter build windows --release > build_log.txt 2>&1
 if %errorlevel% neq 0 (
     echo.
-    echo [!] ERROR: Kompilasi gagal! Jangan push ke GitHub.
+    echo [!] ERROR: Kompilasi Flutter gagal!
     echo Periksa file 'super_skripsi_manager/build_log.txt' untuk detailnya.
     pause
     exit /b 1
 )
-echo [OK] Kompilasi berhasil.
+echo [OK] Flutter Binary siap.
 del build_log.txt
 
 echo.
-echo [5/5] Mengirim Perubahan ke GitHub...
+echo [4.3] Membuat Installer .EXE (Inno Setup)...
+set "ISCC_PROG=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
+set "ISCC_USER=%LocalAppData%\Programs\Inno Setup 6\ISCC.exe"
+
+if exist "!ISCC_PROG!" (
+    set "ISCC=!ISCC_PROG!"
+) else if exist "!ISCC_USER!" (
+    set "ISCC=!ISCC_USER!"
+) else (
+    echo [!] ERROR: ISCC.exe tidak ditemukan di folder standar atau folder User.
+    echo Silakan instal Inno Setup 6 atau sesuaikan path di script ini.
+    pause
+    exit /b 1
+)
+echo [OK] Menggunakan compiler: !ISCC!
+"!ISCC!" "windows\installer\super_skripsi_setup.iss"
+if %errorlevel% neq 0 (
+    echo [!] ERROR: Gagal membuat installer .EXE
+    pause
+    exit /b 1
+)
+echo [OK] Installer .EXE berhasil dibuat di folder 'Output'.
+
+echo.
+echo [5/5] Sinkronisasi ke GitHub...
 cd ..
 git add .
-git commit -m "release: v!VERSION! (automated stable build)"
+git commit -m "release: v!VERSION! (local stable build)"
 git push origin main
 
 echo.
+echo [6/6] Mengunggah Installer ke GitHub Release (Otomatis)...
+:: Cek apakah GitHub CLI (gh) terinstal
+where gh >nul 2>nul
+if %errorlevel% neq 0 (
+    echo [!] PERINGATAN: GitHub CLI (gh) tidak ditemukan.
+    echo Silakan instal GitHub CLI agar bisa upload otomatis: https://cli.github.com/
+    echo Anda harus mengunggah file .exe secara manual untuk kali ini.
+) else (
+    echo Menghapus tag lama (jika ada) dan membuat rilis baru...
+    git tag -a v!VERSION! -m "Release v!VERSION!"
+    git push origin v!VERSION!
+    
+    echo Membuat GitHub Release dan mengunggah installer...
+    set "EXE_FILE=super_skripsi_manager\windows\installer\Output\SuperSkripsi_Setup_v!VERSION!.exe"
+    gh release create v!VERSION! "!EXE_FILE!" --title "Release v!VERSION!" --notes "Automated local stable build for v!VERSION!" --repo gandisetiawan28/Super_Skripsi_Gandi
+    
+    if %errorlevel% equ 0 (
+        echo [OK] BERHASIL! File telah diunggah ke GitHub Release.
+    ) else (
+        echo [!] Gagal mengunggah ke GitHub Release. Pastikan Anda sudah 'gh auth login'.
+    )
+)
+
+echo.
 echo ========================================================
-echo   BERHASIL! Versi !VERSION! telah dirilis ke GitHub.
-echo   Silakan cek GitHub Actions untuk melihat proses rilis.
+echo   SELESAI! Versi !VERSION! telah aktif.
+echo   Semua proses kompilasi dan rilis berjalan otomatis.
 echo ========================================================
 pause

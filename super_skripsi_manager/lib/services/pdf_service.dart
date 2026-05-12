@@ -18,10 +18,26 @@ class PdfService {
     return pagesData.map((key, value) => MapEntry(int.parse(key), value as String));
   }
 
+  /// Helper to find script path reliably across dev/prod
+  String _getScriptPath(String scriptName) {
+    // Check if we are running from a built executable (production)
+    final exePath = Platform.resolvedExecutable;
+    final exeDir = p.dirname(exePath);
+    
+    // In production, scripts are in {app}/lib/scripts/
+    final prodPath = p.join(exeDir, 'lib', 'scripts', scriptName);
+    if (File(prodPath).existsSync()) {
+      return prodPath;
+    }
+    
+    // Fallback for development (current directory)
+    return p.join(Directory.current.path, 'lib', 'scripts', scriptName);
+  }
+
   /// Update PDF metadata (Properties)
   Future<void> updateMetadata(String inputPath, String outputPath, Map<String, String> metadata) async {
     try {
-      final scriptPath = p.join(Directory.current.path, 'lib', 'scripts', 'update_pdf_metadata.py');
+      final scriptPath = _getScriptPath('update_pdf_metadata.py');
       final metaJson = jsonEncode(metadata);
       
       final processResult = await Process.run('py', [
@@ -42,8 +58,7 @@ class PdfService {
 
   Future<Map<String, dynamic>> _runPythonExtractor(String filePath) async {
     try {
-      // Find the script relative to the current directory
-      final scriptPath = p.join(Directory.current.path, 'lib', 'scripts', 'extract_pdf.py');
+      final scriptPath = _getScriptPath('extract_pdf.py');
       
       // Use 'py' launcher on Windows as it's more reliable
       final processResult = await Process.run('py', [scriptPath, filePath], stdoutEncoding: utf8, stderrEncoding: utf8);

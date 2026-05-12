@@ -3,7 +3,7 @@
   #define MyAppVersion GetEnv("MyAppVersion")
 #endif
 #if MyAppVersion == ""
-  #define MyAppVersion "1.1.26"
+  #define MyAppVersion "1.1.27"
 #endif
 #define MyAppPublisher "Gandi Setiawan"
 #define MyAppExeName "super_skripsi_manager.exe"

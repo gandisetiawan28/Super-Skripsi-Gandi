@@ -90,7 +90,7 @@ class RagService {
 
       _uvicornProcess = await Process.start(
         pythonExe,
-        ['-X', 'utf8', '-W', 'ignore', 'main.py', 
+        ['-X', 'utf8', '-W', 'ignore', mainPy, 
          '--host', '127.0.0.1', '--port', '$_port',
          '--parent-pid', '$myPid',
          '--user-id', userId ?? ''],

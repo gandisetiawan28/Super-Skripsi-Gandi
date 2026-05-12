@@ -11,6 +11,15 @@ Endpoint:
 """
 
 import os
+import sys
+
+# ── CRITICAL: Ensure script's own directory is in sys.path ──────────────────
+# Fixes ModuleNotFoundError when installed to paths with spaces
+# (e.g., "C:\Program Files (x86)\Super Skripsi Gandi\rag")
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
+
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 import hashlib
 import json

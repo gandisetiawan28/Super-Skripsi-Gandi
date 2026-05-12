@@ -6,10 +6,26 @@ echo   SUPER SKRIPSI GANDI - ULTIMATE RELEASE AUTOMATION
 echo ========================================================
 echo.
 
+cd /d "%~dp0"
+
 echo [1/5] Membaca Versi dari pubspec.yaml...
+if not exist "super_skripsi_manager\pubspec.yaml" (
+    echo [!] ERROR: pubspec.yaml tidak ditemukan di super_skripsi_manager!
+    pause
+    exit /b 1
+)
+
 cd super_skripsi_manager
 for /f "tokens=2 delims=: " %%a in ('findstr /C:"version:" pubspec.yaml') do (
     set VERSION=%%a
+)
+:: Bersihkan build number (misal 1.1.29+1 jadi 1.1.29)
+for /f "tokens=1 delims=+" %%v in ("!VERSION!") do set VERSION=%%v
+
+if "!VERSION!"=="" (
+    echo [!] ERROR: Versi tidak terdeteksi!
+    pause
+    exit /b 1
 )
 echo [OK] Versi terdeteksi: !VERSION!
 

@@ -1,11 +1,23 @@
 {
   "version": 2,
   "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "application/json"
+        }
+      ],
+      "destination": "/api/index.js"
+    },
     { "source": "/privacy.html", "destination": "/super_skripsi_addin/dist/privacy.html" },
     { "source": "/terms.html", "destination": "/super_skripsi_addin/dist/terms.html" },
     { "source": "/googled7a7da88e6681985.html", "destination": "/super_skripsi_addin/dist/googled7a7da88e6681985.html" },
     { "source": "/taskpane.html", "destination": "/super_skripsi_addin/dist/taskpane.html" },
     { "source": "/assets/(.*)", "destination": "/super_skripsi_addin/dist/assets/$1" },
+    { "source": "/", "destination": "/super_skripsi_addin/dist/index.html" },
     { "source": "/(.*)", "destination": "/api/index.js" }
   ]
 }

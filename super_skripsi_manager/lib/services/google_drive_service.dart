@@ -36,8 +36,15 @@ class GoogleDriveService {
   Future<void> _saveSession(auth.GoogleSignInCredentials data) async {
     final box = await _getBox();
     await box.put('accessToken', data.accessToken);
-    await box.put('refreshToken', data.refreshToken);
-    print('✅ Sesi Google disimpan secara aman.');
+    
+    // Crucial: Only overwrite if we get a new refresh token.
+    // Google often doesn't send it on subsequent logins.
+    if (data.refreshToken != null && data.refreshToken!.isNotEmpty) {
+      await box.put('refreshToken', data.refreshToken);
+      print('✅ Refresh Token baru disimpan secara aman.');
+    }
+    
+    print('✅ Sesi Google (Access Token) diperbarui.');
   }
 
   Future<auth.GoogleSignInCredentials?> _loadSession() async {

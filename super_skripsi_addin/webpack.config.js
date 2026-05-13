@@ -44,6 +44,7 @@ module.exports = (env, argv) => {
       new CopyWebpackPlugin({
         patterns: [
           { from: 'assets', to: 'assets', noErrorOnMissing: true },
+          { from: 'assets/googled7a7da88e6681985.html', to: '.', noErrorOnMissing: true },
         ],
       }),
     ],

@@ -817,7 +817,7 @@
       const config = data.apiConfigs ? data.apiConfigs[selectedProvider] : null;
       if (config) {
         apiToggle.checked = config.enabled;
-        apiUrl.value = config.url || 'http://localhost:3000';
+        apiUrl.value = config.url || 'http://127.0.0.1:3000';
         updateApiEndpointHint();
         if (config.enabled) {
           chrome.runtime.sendMessage({ type: 'FORCE_RECONNECT' });
@@ -865,7 +865,7 @@
       const configs = data.apiConfigs || {};
       const config = configs[provider] || {
         enabled: false,
-        url: `http://localhost:${DEFAULT_PORTS[provider] || 3000}`
+        url: `http://127.0.0.1:${DEFAULT_PORTS[provider] || 3000}`
       };
       
       apiToggle.checked = config.enabled;
@@ -882,7 +882,7 @@
     const provider = providerSelect.value;
     const config = {
       enabled: apiToggle.checked,
-      url: apiUrl.value.trim() || `http://localhost:${DEFAULT_PORTS[provider] || 3000}`
+      url: apiUrl.value.trim() || `http://127.0.0.1:${DEFAULT_PORTS[provider] || 3000}`
     };
 
     chrome.storage.local.get(['apiConfigs'], (data) => {
@@ -926,7 +926,7 @@
         break;
       case 'error':
         text += 'Connection Error';
-        addLog('API Bridge: Error connecting. Is node server.js running?', 'error');
+        addLog('API Bridge: Error connecting. Make sure "Super Skripsi Manager" app is running and Bridge is enabled.', 'error');
         break;
       case 'disabled':
         text += 'Disabled';
@@ -938,7 +938,7 @@
   }
 
   function updateApiEndpointHint() {
-    const base = apiUrl.value.trim() || 'http://localhost:3000';
+    const base = apiUrl.value.trim() || 'http://127.0.0.1:3000';
     const provider = selectedProvider || 'gemini';
     apiEndpointText.textContent = `${base}/api/${provider}`;
   }

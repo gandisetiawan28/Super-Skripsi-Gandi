@@ -371,7 +371,7 @@ class _ResearchPageState extends ConsumerState<ResearchPage> {
       
       // Gabungkan semua key dengan koma untuk dikirim ke Python (Rotation Support)
       final apiKeyString = providerKeys.map((k) => k['key']).whereType<String>().join(',');
-      final apiKey = apiKeyString.isNotEmpty ? apiKeyString : (selectedProvider == 'Localhost' ? 'http://localhost:3000/' : null);
+      final apiKey = apiKeyString.isNotEmpty ? apiKeyString : (selectedProvider == 'Localhost' ? 'http://127.0.0.1:3000/' : null);
 
       if (apiKey == null || apiKey.isEmpty) {
         processNotifier.addLog('❌ Indexing Gagal: API Key untuk $selectedProvider belum diatur.');
@@ -707,7 +707,7 @@ class _ResearchPageState extends ConsumerState<ResearchPage> {
                       };
 
                       final res = await http.post(
-                        Uri.parse('http://localhost:28146/add_manual'),
+                        Uri.parse('http://127.0.0.1:28146/add_manual'),
                         headers: {'Content-Type': 'application/json'},
                         body: jsonEncode(payload),
                       );

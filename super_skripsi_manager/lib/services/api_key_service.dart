@@ -131,7 +131,7 @@ class ApiKeyService {
 
     // Seed Localhost
     if (!keys.containsKey('Localhost') || keys['Localhost']!.isEmpty) {
-      await saveKey('Localhost', 'Gemini Flow (Default)', 'http://localhost:3000');
+      await saveKey('Localhost', 'Gemini Flow (Default)', 'http://127.0.0.1:3000');
     }
   }
 
@@ -143,18 +143,26 @@ class ApiKeyService {
     if (keys.containsKey('Localhost')) {
       for (var keyObj in keys['Localhost']!) {
         String url = keyObj['key'] ?? '';
-        if (url.contains('/api')) {
-          String original = url;
+        String original = url;
+
+        // 1. Migrate localhost to 127.0.0.1
+        if (url.contains('localhost:3000')) {
+          url = url.replaceAll('localhost:3000', '127.0.0.1:3000');
+        }
+
+        // 2. Clean up trailing /api or /
+        if (url.contains('/api') || url.endsWith('/')) {
           while (url.endsWith('/api') || url.endsWith('/')) {
              url = url.replaceAll(RegExp(r'\/+$'), '');
              if (url.endsWith('/api')) {
                 url = url.substring(0, url.length - 4);
              }
           }
-          if (original != url) {
-            keyObj['key'] = url;
-            modified = true;
-          }
+        }
+
+        if (original != url) {
+          keyObj['key'] = url;
+          modified = true;
         }
       }
     }

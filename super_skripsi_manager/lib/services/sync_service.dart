@@ -71,47 +71,76 @@ class SyncService extends StateNotifier<SyncState> {
     state = state.copyWith(lastSync: now);
   }
 
+
+  /// Restore everything from Google Drive
+  Future<String> _getProjectRoot() async {
+    // RAG engine uses UserHome/.super_skripsi
+    final home = Platform.isWindows ? Platform.environment['USERPROFILE'] : Platform.environment['HOME'];
+    final root = p.join(home!, '.super_skripsi');
+    final dir = Directory(root);
+    if (!await dir.exists()) await dir.create(recursive: true);
+    return root;
+  }
+
   Future<void> performSync() async {
     if (state.status == SyncStatus.syncing) return;
+    if (_userEmail == null) return;
     
     state = state.copyWith(status: SyncStatus.syncing, error: null, message: 'Menyiapkan sinkronisasi...');
     
     try {
-      final appDir = await getApplicationSupportDirectory();
-      
-      // 1. Snapshot & Sync Database (Dynamic)
-      state = state.copyWith(message: 'Upload Database Riset...');
+      final projectRoot = await _getProjectRoot();
       final safeEmail = SessionUtils.getSafeEmail(_userEmail);
-      final dbBaseName = 'vector_store_$safeEmail.db';
-      final dbPath = p.join(appDir.path, 'super_skripsi', dbBaseName);
-      final dbFile = File(dbPath);
+      final userFolder = p.join(projectRoot, 'users', safeEmail);
+      final uploadDir = p.join(userFolder, 'uploaded_pdfs');
+      final registryPath = p.join(userFolder, 'doc_registry.json');
       
-      if (await dbFile.exists()) {
-        final tempDir = await getTemporaryDirectory();
-        final snapshotPath = p.join(tempDir.path, 'snapshot_$dbBaseName');
-        await dbFile.copy(snapshotPath);
-        
+      // Ensure folders exist
+      await Directory(uploadDir).create(recursive: true);
+
+      // 1. Sync Registry (Paling Penting agar AI tahu daftar dokumen)
+      state = state.copyWith(message: 'Upload Daftar Dokumen...');
+      final registryFile = File(registryPath);
+      if (await registryFile.exists()) {
         final driveFiles = await _driveService.listAppDataFiles();
-        final existingDbFile = driveFiles.firstWhere(
-          (f) => f.name == dbBaseName,
+        final remoteName = 'doc_registry_$safeEmail.json';
+        final existing = driveFiles.firstWhere(
+          (f) => f.name == remoteName,
           orElse: () => drive.File(),
         );
-
-        await _driveService.uploadFile(
-          File(snapshotPath), 
-          driveFileId: existingDbFile.id != null ? existingDbFile.id : null,
-        );
-        
-        await File(snapshotPath).delete();
+        await _driveService.uploadFile(registryFile, driveFileId: existing.id);
       }
 
-      // 2. Sync Hive Boxes (Latihan History & Cache)
-      state = state.copyWith(message: 'Upload Riwayat Latihan...');
+      // 2. Sync Library PDFs (Hanya file yang ada di registry)
+      state = state.copyWith(message: 'Upload Koleksi PDF...');
+      final dir = Directory(uploadDir);
+      if (await dir.exists()) {
+        final pdfFiles = dir.listSync().whereType<File>().where((f) => f.path.endsWith('.pdf'));
+        final driveFiles = await _driveService.listAppDataFiles();
+        
+        for (final pdf in pdfFiles) {
+          final fileName = p.basename(pdf.path);
+          // Prefix dengan email agar tidak tabrakan antar user di AppData Google Drive
+          final remotePdfName = 'pdf_${safeEmail}_$fileName';
+          
+          final existing = driveFiles.firstWhere(
+            (f) => f.name == remotePdfName,
+            orElse: () => drive.File(),
+          );
+          
+          if (existing.id == null) {
+            await _driveService.uploadFile(pdf);
+          }
+        }
+      }
+
+      // 3. Sync Hive Boxes (Latihan & Settings)
+      state = state.copyWith(message: 'Upload Data App...');
+      final appDir = await getApplicationSupportDirectory();
       final hiveBoxes = [
         SessionUtils.getDynamicBoxName('latihan_history', _userEmail) + '.hive',
         SessionUtils.getDynamicBoxName('latihan_cache', _userEmail) + '.hive',
         SessionUtils.getDynamicBoxName('latihan_settings', _userEmail) + '.hive',
-        SessionUtils.getDynamicBoxName('latihan_analysis', _userEmail) + '.hive',
       ];
 
       for (final boxName in hiveBoxes) {
@@ -127,27 +156,6 @@ class SyncService extends StateNotifier<SyncState> {
         }
       }
 
-      // 3. Sync Library PDFs
-      state = state.copyWith(message: 'Upload Koleksi PDF...');
-      final libDir = Directory(p.join(appDir.path, 'library'));
-      if (await libDir.exists()) {
-        final pdfFiles = libDir.listSync().whereType<File>().where((f) => f.path.endsWith('.pdf'));
-        final driveFiles = await _driveService.listAppDataFiles();
-        
-        for (final pdf in pdfFiles) {
-          final fileName = p.basename(pdf.path);
-          final existing = driveFiles.firstWhere(
-            (f) => f.name == fileName,
-            orElse: () => drive.File(),
-          );
-          
-          // Only upload if it doesn't exist on Drive
-          if (existing.id == null) {
-            await _driveService.uploadFile(pdf);
-          }
-        }
-      }
-
       await _saveMetadata();
       state = state.copyWith(status: SyncStatus.success, message: 'Berhasil disinkronkan');
     } catch (e) {
@@ -155,39 +163,46 @@ class SyncService extends StateNotifier<SyncState> {
     }
   }
 
-  /// Restore everything from Google Drive
   Future<void> performRestore() async {
     if (state.status == SyncStatus.syncing) return;
+    if (_userEmail == null) return;
+    
     state = state.copyWith(status: SyncStatus.syncing, error: null, message: 'Mengecek Backup...');
 
     try {
-      final appDir = await getApplicationSupportDirectory();
-      final driveFiles = await _driveService.listAppDataFiles();
-
+      final projectRoot = await _getProjectRoot();
       final safeEmail = SessionUtils.getSafeEmail(_userEmail);
-      final dbBaseName = 'vector_store_$safeEmail.db';
-      final historyBoxName = SessionUtils.getDynamicBoxName('latihan_history', _userEmail) + '.hive';
-      final cacheBoxName = SessionUtils.getDynamicBoxName('latihan_cache', _userEmail) + '.hive';
-      final settingsBoxName = SessionUtils.getDynamicBoxName('latihan_settings', _userEmail) + '.hive';
-      final analysisBoxName = SessionUtils.getDynamicBoxName('latihan_analysis', _userEmail) + '.hive';
+      final userFolder = p.join(projectRoot, 'users', safeEmail);
+      final uploadDir = p.join(userFolder, 'uploaded_pdfs');
+      final registryPath = p.join(userFolder, 'doc_registry.json');
 
+      await Directory(uploadDir).create(recursive: true);
+      
+      final driveFiles = await _driveService.listAppDataFiles();
       state = state.copyWith(message: 'Mendownload data...');
+
+      final remoteRegistryName = 'doc_registry_$safeEmail.json';
+      final remotePdfPrefix = 'pdf_${safeEmail}_';
 
       for (final driveFile in driveFiles) {
         if (driveFile.id == null || driveFile.name == null) continue;
 
-        if (driveFile.name == dbBaseName) {
-          final dbDir = Directory(p.join(appDir.path, 'super_skripsi'));
-          if (!await dbDir.exists()) await dbDir.create(recursive: true);
-          final target = File(p.join(dbDir.path, driveFile.name));
-          await _driveService.downloadFile(driveFile.id!, target);
-        } else if (driveFile.name == historyBoxName || driveFile.name == cacheBoxName || driveFile.name == settingsBoxName || driveFile.name == analysisBoxName) {
-          final target = File(p.join(appDir.path, driveFile.name));
-          await _driveService.downloadFile(driveFile.id!, target);
-        } else if (driveFile.name!.endsWith('.pdf')) {
-          final libDir = Directory(p.join(appDir.path, 'library'));
-          if (!await libDir.exists()) await libDir.create(recursive: true);
-          final target = File(p.join(libDir.path, driveFile.name));
+        // Restore Registry
+        if (driveFile.name == remoteRegistryName) {
+          await _driveService.downloadFile(driveFile.id!, File(registryPath));
+        } 
+        // Restore PDFs
+        else if (driveFile.name!.startsWith(remotePdfPrefix)) {
+          final localName = driveFile.name!.replaceFirst(remotePdfPrefix, '');
+          final target = File(p.join(uploadDir, localName));
+          if (!await target.exists()) {
+            await _driveService.downloadFile(driveFile.id!, target);
+          }
+        }
+        // Restore Hive Boxes
+        else if (driveFile.name!.contains('.hive')) {
+          final appDir = await getApplicationSupportDirectory();
+          final target = File(p.join(appDir.path, driveFile.name!));
           await _driveService.downloadFile(driveFile.id!, target);
         }
       }

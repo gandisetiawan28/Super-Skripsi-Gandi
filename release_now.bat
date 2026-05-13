@@ -103,6 +103,8 @@ if exist "!ISCC_PROG!" (
     exit /b 1
 )
 echo [OK] Menggunakan compiler: !ISCC!
+echo Menghapus installer lama di folder Output...
+if exist "windows\installer\Output\*.exe" del /q "windows\installer\Output\*.exe"
 "!ISCC!" "windows\installer\super_skripsi_setup.iss"
 if %errorlevel% neq 0 (
     echo [!] ERROR: Gagal membuat installer .EXE

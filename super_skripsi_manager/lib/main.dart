@@ -24,11 +24,10 @@ import 'providers/license_provider.dart';
 import 'providers/server_provider.dart';
 import 'providers/addin_launcher_provider.dart';
 import 'providers/rag_service_provider.dart';
-import 'package:provider/provider.dart' as pk_provider;
-import 'services/api_bridge_service.dart';
-import 'providers/stats_provider.dart';
+import 'providers/stats_provider_riverpod.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/onboarding_provider.dart';
+import 'providers/api_bridge_provider.dart';
 import 'services/sync_service.dart';
 import 'services/updater_service.dart';
 import 'widgets/update_dialog.dart';
@@ -61,17 +60,7 @@ void main() async {
 
   runApp(
     ProviderScope(
-      child: pk_provider.MultiProvider(
-        providers: [
-          pk_provider.ChangeNotifierProvider<ApiBridgeService>(
-            create: (_) => ApiBridgeService(),
-          ),
-          pk_provider.ChangeNotifierProvider<StatsProvider>(
-            create: (context) => StatsProvider(),
-          ),
-        ],
-        child: const SuperSkripsiApp(),
-      ),
+      child: const SuperSkripsiApp(),
     ),
   );
 }
@@ -176,16 +165,28 @@ class _MainShellState extends ConsumerState<MainShell> with WidgetsBindingObserv
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     
-    // Auto-start services on app launch
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      ref.read(serverProvider.notifier).startServer();
-      ref.read(addinLauncherProvider.notifier).start();
-      // Auto-start Python RAG service (fire-and-forget, tidak block startup)
-      ref.read(ragStateProvider.notifier).initialize();
+      // Auto-start services on app launch
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        print('[SYSTEM] 🏁 Starting initialization sequence...');
+        
+        // 1. Initialize ServerNotifier first to ensure it's ready to listen to logs
+        final serverNotifier = ref.read(serverProvider.notifier);
+        
+        // 2. Start Local Server and RAG
+        serverNotifier.startServer();
+        ref.read(addinLauncherProvider.notifier).start();
+        ref.read(ragStateProvider.notifier).initialize();
 
-      // Auto-start API Bridge (Node.js)
-      final apiService = pk_provider.Provider.of<ApiBridgeService>(context, listen: false);
-      await apiService.startServer();
+        // 3. Small delay to ensure listeners are attached
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        print('[SYSTEM] 🧩 Launching Extension Bridge...');
+        try {
+          ref.read(apiBridgeProvider).startServer();
+          print('[SYSTEM] ✅ Extension Bridge start command sent.');
+        } catch (e) {
+          print('[SYSTEM] ❌ CRITICAL ERROR starting bridge: $e');
+        }
 
       // Check for updates
       _checkUpdates();
@@ -550,73 +551,74 @@ class _WordStatusBadge extends ConsumerWidget {
 }
 
 /// Badge yang menampilkan status Browser Extension Bridge (Node.js Server)
-class _ExtensionStatusBadge extends StatelessWidget {
+class _ExtensionStatusBadge extends ConsumerWidget {
   const _ExtensionStatusBadge();
 
   @override
-  Widget build(BuildContext context) {
-    return pk_provider.Consumer2<ApiBridgeService, StatsProvider>(
-      builder: (context, apiService, stats, child) {
-        // Status online jika bridge aktif DAN minimal ada 1 provider yang online
-        final bool isServerRunning = apiService.isRunning;
-        final bool hasProviders = stats.isOnline && stats.activeProviders > 0;
-        final bool isFullyOnline = isServerRunning && hasProviders;
-        
-        final Color dotColor = isFullyOnline ? const Color(0xFF28C940) : const Color(0xFFFF5F57);
-        final Color bgColor = dotColor.withOpacity(0.12);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final apiService = ref.watch(apiBridgeProvider);
+    final stats = ref.watch(statsProvider);
+    
+    // Status online jika bridge aktif DAN minimal ada 1 provider yang online
+    final bool isServerRunning = apiService.isRunning;
+    final bool hasProviders = stats.isOnline && stats.activeProviders > 0;
+    Color dotColor;
+    String label = '🧩 Offline';
+    String tooltip = 'Extension Bridge mati — Browser Extension tidak dapat mengakses data';
+    
+    if (isServerRunning) {
+      if (hasProviders) {
+        dotColor = const Color(0xFF28C940); // Green
+        label = '🧩 Extension';
+        tooltip = 'Extension Bridge aktif — ${stats.activeProviders} AI Provider terhubung';
+      } else {
+        dotColor = const Color(0xFFFFBD2E); // Yellow/Orange
+        label = '🧩 Standby';
+        tooltip = 'Extension Bridge aktif, tapi belum ada AI Provider yang online di Browser (Buka Browser & Login ke Gemini/ChatGPT)';
+      }
+    } else {
+      dotColor = const Color(0xFFFF5F57); // Red
+    }
 
-        String label = '🧩 Offline';
-        String tooltip = 'Extension Bridge mati — Browser Extension tidak dapat mengakses data';
-        
-        if (isServerRunning) {
-          if (hasProviders) {
-            label = '🧩 Extension';
-            tooltip = 'Extension Bridge aktif — ${stats.activeProviders} AI Provider terhubung';
-          } else {
-            label = '🧩 Standby';
-            tooltip = 'Extension Bridge aktif, tapi belum ada AI Provider yang online di Browser';
-          }
-        }
+    final Color bgColor = dotColor.withOpacity(0.12);
 
-        return Tooltip(
-          message: tooltip,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 400),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: dotColor.withOpacity(0.2), width: 1),
+    return Tooltip(
+      message: tooltip,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: dotColor.withOpacity(0.2), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: dotColor,
+                boxShadow: hasProviders
+                    ? [BoxShadow(color: dotColor.withOpacity(0.6), blurRadius: 6)]
+                    : null,
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: dotColor,
-                    boxShadow: isFullyOnline
-                        ? [BoxShadow(color: dotColor.withOpacity(0.6), blurRadius: 6)]
-                        : null,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: dotColor,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: dotColor,
+                letterSpacing: 0.3,
+              ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 }

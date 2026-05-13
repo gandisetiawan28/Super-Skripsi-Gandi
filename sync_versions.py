@@ -116,9 +116,12 @@ def update_iss_version(version):
     # Update #define MyAppVersion "X.X.X" (only if it's the fallback version)
     new_content = re.sub(r'#define MyAppVersion "(.*?)"', f'#define MyAppVersion "{version}"', content)
     
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(new_content)
-    print(f"Updated Inno Setup Script: {version}")
+    # Create a small side-file for reliable auto-sync during manual build
+    version_iss = os.path.join(os.path.dirname(path), 'version.iss')
+    with open(version_iss, 'w', encoding='utf-8') as f:
+        f.write(f'#define MyAppVersion "{version}"\n')
+    
+    print(f"Updated Inno Setup Script & version.iss: {version}")
 
 def update_mobile_pubspec(version):
     path = MOBILE_PUBSPEC

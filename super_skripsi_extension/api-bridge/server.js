@@ -1,27 +1,53 @@
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 
-app.use(cors());
+app.use(cors({
+  origin: '*', // For local bridge, we can allow all, but background scripts specifically benefit from explicit headers
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Pre-flight for private network requests (Chrome security)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Private-Network', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const PORT = process.env.PORT || 3000;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-// Serve Add-in static files
-const addinPath = IS_PROD 
-  ? path.join(__dirname, '..', '..', 'addin') 
-  : path.join(__dirname, '..', '..', 'super_skripsi_addin', 'dist');
+// --- Smart Add-in Path Detection ---
+const prodPath = path.join(__dirname, '..', '..', 'addin'); // Path after installation
+const devPath = path.join(__dirname, '..', '..', 'super_skripsi_addin', 'dist'); // Developer path
+
+let addinPath = '';
+
+if (fs.existsSync(prodPath)) {
+  addinPath = prodPath;
+  console.log(`[BRIDGE] Production Mode. Serving Add-in from: ${addinPath}`);
+} else if (fs.existsSync(devPath)) {
+  addinPath = devPath;
+  console.log(`[BRIDGE] Development Mode. Serving Add-in from: ${addinPath}`);
+} else {
+  addinPath = __dirname; // Safe fallback
+  console.log(`[BRIDGE-ERROR] FATAL: Add-in folder NOT found!`);
+}
 
 app.use('/addin', express.static(addinPath));
-console.log(`[BRIDGE] Serving Add-in from: ${addinPath}`);
+console.log(`[BRIDGE] Static routing for /addin set to: ${addinPath}`);
 
 // --- State ---
 const pendingQueues = {};   
@@ -36,36 +62,8 @@ let trafficStats = {
 };
 
 async function trackRequestTraffic(req) {
-  try {
-    let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    
-    // Handle localhost (detect real public IP for local testing)
-    if (ip === '::1' || ip === '127.0.0.1' || ip.includes('::ffff:127.0.0.1')) {
-      const ipResp = await fetch('https://api.ipify.org?format=json');
-      const ipData = await ipResp.json();
-      ip = ipData.ip;
-    }
-
-    const geoResp = await fetch(`http://ip-api.com/json/${ip}`);
-    const geoData = await geoResp.json();
-
-    if (geoData.status === 'success') {
-      const countryName = geoData.country;
-      if (!trafficStats.countries[countryName]) {
-        trafficStats.countries[countryName] = {
-          hits: 0,
-          lat: geoData.lat,
-          lng: geoData.lon,
-          color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
-        };
-      }
-      trafficStats.countries[countryName].hits++;
-      trafficStats.totalHits++;
-      console.log(`[TRAFFIC] New hit from ${countryName} (${ip})`);
-    }
-  } catch (err) {
-    console.error(`[TRAFFIC ERROR] ${err.message}`);
-  }
+  // Traffic tracking disabled for stability and performance
+  return;
 }
 
 function getFormattedTraffic() {
@@ -128,11 +126,12 @@ function addLog(level, message, provider = 'system') {
   const logLine = `[${log.timestamp}] [${level}] [${provider}] ${message}\n`;
   console.log(logLine.trim());
   
-  // Append to file
+  // Save log to Windows TEMP folder to avoid permission issues in Program Files
   try {
-    fs.appendFileSync(path.join(__dirname, 'activity.log'), logLine);
+    const logPath = path.join(process.env.TEMP || __dirname, 'super_skripsi_activity.log');
+    fs.appendFileSync(logPath, logLine);
   } catch (err) {
-    // Ignore log errors
+    // Silent fail for log file writes
   }
 }
 
@@ -145,7 +144,7 @@ app.get('/stats', (req, res) => {
   const providers = Object.keys(lastSeen).map(p => ({
     provider: p,
     lastSeen: new Date(lastSeen[p]).toISOString(),
-    online: Date.now() - lastSeen[p] < 5000
+    online: Date.now() - lastSeen[p] < 30000 // Increased to 30s to account for background throttling
   }));
   res.send({ 
     uptime: Math.floor((Date.now() - stats.startTime) / 1000),
@@ -248,6 +247,6 @@ app.post('/ext/result', (req, res) => {
   res.send({ ok: true });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://127.0.0.1:${PORT}`);
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`[BRIDGE] Server running on http://127.0.0.1:${PORT}`);
 });

@@ -40,7 +40,7 @@ class StatsProvider with ChangeNotifier {
 
   Future<void> fetchStats() async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:3000/stats')).timeout(const Duration(seconds: 2));
+      final response = await http.get(Uri.parse('http://127.0.0.1:3000/stats')).timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         _uptime = data['uptime'] ?? 0;
@@ -66,7 +66,10 @@ class StatsProvider with ChangeNotifier {
         _isOnline = false;
       }
     } catch (e) {
-      if (_isOnline) _addLog('Bridge connection failed', 'error');
+      if (_isOnline) {
+        _addLog('Bridge connection failed: $e', 'error');
+        debugPrint('[StatsProvider] Fetch failed: $e');
+      }
       _isOnline = false;
     }
     notifyListeners();

@@ -4,7 +4,7 @@
    for full Chrome MV3 Service Worker compatibility.
    ============================================= */
 
-let apiConfig = { enabled: false, url: 'http://localhost:3000', provider: 'gemini' };
+let apiConfig = { enabled: false, url: 'http://127.0.0.1:3000', provider: 'gemini' };
 let status = 'disabled';
 let pollSessionId = 0;
 let pollTimer = null;
@@ -77,10 +77,11 @@ async function pollSignals(sessionId) {
   if (sessionId !== pollSessionId || !apiConfig.enabled) return;
 
   const provider = apiConfig.provider || 'gemini';
-  const baseUrl = apiConfig.url || 'http://localhost:3000';
-  const signalUrl = `${baseUrl}/ext/signal/${provider}`;
-
   try {
+    let baseUrl = (apiConfig.url || 'http://127.0.0.1:3000').trim();
+    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+    const signalUrl = `${baseUrl}/ext/signal/${provider}`;
+
     const response = await fetch(signalUrl, { method: 'GET' });
     const data = await response.json();
     
@@ -108,8 +109,10 @@ async function pollTasks(sessionId) {
     return;
   }
 
+  let baseUrl = (apiConfig.url || 'http://127.0.0.1:3000').trim();
+  if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+  
   const provider = apiConfig.provider || 'gemini';
-  const baseUrl = apiConfig.url || 'http://localhost:3000';
   const pollUrl = `${baseUrl}/ext/poll/${provider}`;
 
   try {
@@ -135,7 +138,18 @@ async function pollTasks(sessionId) {
     }
     if (status !== 'connected') updateStatus('connected');
   } catch (err) {
-    if (status !== 'error') updateStatus('error');
+    const provider = apiConfig.provider || 'gemini';
+    console.error(`[Background] Bridge connection error (${provider}):`, err.message);
+    
+    // Only set error status if it's a real connection failure, not a script error
+    if (err instanceof TypeError || err.message.includes('fetch')) {
+       if (status !== 'error') updateStatus('error');
+    }
+    
+    // Diagnostic: check if server is reachable on 127.0.0.1 as fallback if configured with localhost
+    if (baseUrl.includes('localhost')) {
+       console.log('[Background] Diagnostic: Suggesting switch from localhost to 127.0.0.1');
+    }
   }
 
   if (sessionId === pollSessionId && apiConfig.enabled) {

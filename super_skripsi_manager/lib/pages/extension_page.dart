@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart' as pk_provider;
 import 'package:intl/intl.dart';
 import '../theme/glassmorphism_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/sparkline_chart.dart';
 import '../providers/stats_provider.dart';
+import '../providers/api_bridge_provider.dart';
+import '../providers/stats_provider_riverpod.dart';
 
-class ExtensionPage extends StatelessWidget {
+class ExtensionPage extends ConsumerWidget {
   const ExtensionPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(statsProvider);
+    final apiService = ref.watch(apiBridgeProvider);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: pk_provider.Consumer<StatsProvider>(
-        builder: (context, stats, child) {
+      body: Builder(
+        builder: (context) {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(

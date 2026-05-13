@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart' as pk_provider;
-import '../theme/glassmorphism_theme.dart';
-import '../widgets/glass_card.dart';
 import '../widgets/log_terminal.dart';
+import '../widgets/glass_card.dart';
+import '../theme/glassmorphism_theme.dart';
 import '../providers/server_provider.dart';
-import '../services/api_bridge_service.dart';
+import '../providers/api_bridge_provider.dart';
 import '../providers/rag_service_provider.dart';
 
 class LogsPage extends ConsumerWidget {
@@ -87,7 +86,7 @@ class LogsPage extends ConsumerWidget {
                       ),
                       Text(
                         server.isRunning
-                            ? 'Aktif di http://localhost:${server.port}'
+                            ? 'Aktif di http://127.0.0.1:${server.port}'
                             : 'Tidak aktif — Word Add-in tidak dapat terhubung.',
                         style: GoogleFonts.inter(
                           fontSize: 11,
@@ -113,8 +112,9 @@ class LogsPage extends ConsumerWidget {
           const SizedBox(height: 10),
 
           // ─── Extension Bridge Status Card ───
-          pk_provider.Consumer<ApiBridgeService>(
-            builder: (context, apiService, _) {
+          Builder(
+            builder: (context) {
+              final apiService = ref.watch(apiBridgeProvider);
               return GlassCard(
                 margin: EdgeInsets.zero,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -142,7 +142,7 @@ class LogsPage extends ConsumerWidget {
                           ),
                           Text(
                             apiService.isRunning
-                                ? 'Aktif di http://localhost:3000'
+                                ? 'Aktif di http://127.0.0.1:3000'
                                 : 'Tidak aktif — Browser Extension tidak dapat terhubung.',
                             style: GoogleFonts.inter(
                               fontSize: 11,

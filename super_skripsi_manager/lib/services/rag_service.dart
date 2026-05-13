@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 /// yang berjalan di http://localhost:28146
 class RagService {
   static const int _port = 28146;
-  static const String _baseUrl = 'http://localhost:$_port';
+  static const String _baseUrl = 'http://127.0.0.1:$_port';
   static const Duration _timeout = Duration(seconds: 5);
   static const Duration _uploadTimeout = Duration(seconds: 1200);
 
@@ -268,10 +268,10 @@ class RagService {
     }
   }
 
-  /// Bersihkan antrean di ApiBridge (localhost:3000)
+  /// Bersihkan antrean di ApiBridge (127.0.0.1:3000)
   Future<void> cleanupBridge() async {
     try {
-      await http.get(Uri.parse('http://localhost:3000/api/clear')).timeout(_timeout);
+      await http.get(Uri.parse('http://127.0.0.1:3000/api/clear')).timeout(_timeout);
       print('[RAG] ✅ ApiBridge queue cleared.');
     } catch (_) {}
   }

@@ -1,15 +1,19 @@
 #define MyAppName "Super Skripsi Gandi"
-#ifndef MyAppVersion
-  #define MyAppVersion GetEnv("MyAppVersion")
-#endif
-#if MyAppVersion == ""
-  #define MyAppVersion "1.1.29"
-#endif
+
+; =========================================================================================
+; AUTOMATION: Jalankan Build Flutter secara otomatis sebelum membuat installer
+; =========================================================================================
+#expr Exec("cmd.exe", "/c cd /d """ + SourcePath + "..\..\.."" && python sync_versions.py", "", SW_HIDE)
+#expr Exec("cmd.exe", "/c cd /d """ + SourcePath + "..\.."" && flutter build windows --release", "", SW_SHOW)
+
+; Ambil versi terbaru yang dihasilkan oleh sync_versions.py tadi
+#include "version.iss"
 #define MyAppPublisher "Gandi Setiawan"
 #define MyAppExeName "super_skripsi_manager.exe"
 
 [Setup]
 AppId={{C6D26A1A-A6F5-47B2-9A8E-F6E4C238A99B}
+PrivilegesRequired=admin
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
@@ -25,7 +29,7 @@ InfoBeforeFile=install_info.txt
 ; Version Info
 VersionInfoVersion={#MyAppVersion}
 VersionInfoCompany={#MyAppPublisher}
-VersionInfoDescription="Smart Research Engine for Students"
+VersionInfoDescription=Smart Research Engine for Students
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -40,15 +44,15 @@ Source: "..\..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ign
 ; Folder Python RAG Backend
 Source: "..\..\..\super_skripsi_rag\*"; DestDir: "{app}\rag"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__\*, .venv\*, .git\*"
 
-; Browser Extension & API Bridge (PENTING: node_modules harus disertakan agar Add-in Word jalan)
-Source: "..\..\..\super_skripsi_extension\*"; DestDir: "{app}\extension"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "api-bridge\.git\*"
+; Browser Extension & API Bridge (Sangat Penting: node_modules harus ada di folder source agar Add-in jalan)
+Source: "..\..\..\super_skripsi_extension\*"; DestDir: "{app}\extension"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: ".git\*, api-bridge\.git\*"
 
 ; Word Add-in (Built files only)
 Source: "..\..\..\super_skripsi_addin\dist\*"; DestDir: "{app}\addin"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\..\..\super_skripsi_addin\manifest.xml"; DestDir: "{app}\addin"; Flags: ignoreversion
 Source: "..\..\..\super_skripsi_addin\install_addin.bat"; DestDir: "{app}\addin"; Flags: ignoreversion
 
-; Portable Node.js (Akan diunduh oleh CI/CD ke folder 'node')
+; Portable Node.js (Pastikan folder 'node' di root project sudah terisi node.exe)
 Source: "..\..\..\node\*"; DestDir: "{app}\node"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; Script Python Tambahan (Penting untuk Ekstraksi PDF & Generate Soal)

@@ -2,11 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/local_server_service.dart';
 import '../services/api_key_service.dart';
 import '../services/vector_store_service.dart';
+import '../services/api_bridge_service.dart';
 
 import '../services/rag_service.dart';
 import 'rag_service_provider.dart';
 
 import 'onboarding_provider.dart';
+import 'api_bridge_provider.dart';
 
 final serverProvider =
     StateNotifierProvider<ServerNotifier, ServerState>((ref) {
@@ -14,7 +16,19 @@ final serverProvider =
   final apiKeyService = ref.read(Provider<ApiKeyService>((ref) => ApiKeyService(email)));
   final vectorStore = ref.read(Provider<VectorStoreService>((ref) => VectorStoreService(email)));
   final ragService = ref.read(ragServiceProvider);
-  return ServerNotifier(apiKeyService, vectorStore, ragService);
+  final apiService = ref.read(apiBridgeProvider);
+  
+  final notifier = ServerNotifier(apiKeyService, vectorStore, ragService, apiService);
+  
+  // Attach immediately
+  apiService.onLog = notifier.handleLog;
+  
+  // Keep onLog attached even if service changes (though it shouldn't)
+  ref.listen(apiBridgeProvider, (previous, next) {
+    next.onLog = notifier.handleLog;
+  });
+  
+  return notifier;
 });
 
 class ServerState {
@@ -40,22 +54,23 @@ class ServerState {
 class ServerNotifier extends StateNotifier<ServerState> {
   late final LocalServerService _server;
 
-  ServerNotifier(ApiKeyService apiKeyService, VectorStoreService vectorStore, RagService ragService)
+  ServerNotifier(ApiKeyService apiKeyService, VectorStoreService vectorStore, RagService ragService, ApiBridgeService apiService)
       : super(ServerState()) {
     _server = LocalServerService(apiKeyService, vectorStore);
     
-    void handleLog(String level, String message) {
-      if (!mounted) return;
-      final newLogs = [...state.logs, '[$level] $message'];
-      if (newLogs.length > 300) {
-        state = state.copyWith(logs: newLogs.sublist(newLogs.length - 300));
-      } else {
-        state = state.copyWith(logs: newLogs);
-      }
-    }
-
     _server.onLog = handleLog;
     ragService.onLog = handleLog;
+    apiService.onLog = handleLog;
+  }
+
+  void handleLog(String level, String message) {
+    if (!mounted) return;
+    final newLogs = [...state.logs, '[$level] $message'];
+    if (newLogs.length > 300) {
+      state = state.copyWith(logs: newLogs.sublist(newLogs.length - 300));
+    } else {
+      state = state.copyWith(logs: newLogs);
+    }
   }
 
   Future<void> startServer({int? port}) async {

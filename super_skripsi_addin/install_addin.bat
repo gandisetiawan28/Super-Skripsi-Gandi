@@ -37,10 +37,30 @@ set "TRUST_LOC=HKCU\Software\Microsoft\Office\16.0\Registration\Trusted Location
 reg add "%TRUST_LOC%" /v "Path" /t REG_SZ /d "%ADDIN_PATH%" /f >nul 2>&1
 reg add "%TRUST_LOC%" /v "AllowSubfolders" /t REG_DWORD /d 1 /f >nul 2>&1
 
-:: 4. Launching Word
-echo [4/4] Launching Microsoft Word...
-:: Menggunakan start winword tanpa /webextension untuk menghindari error XML di beberapa versi Word
-start winword
+:: 4. Loopback Exemption (Sangat penting agar icon muncul di Windows 10/11)
+echo [4/5] Enabling Localhost access (Loopback Exemption)...
+:: Izin untuk Word
+CheckNetIsolation.exe LoopbackExempt -a -n="microsoft.winword_8wekyb3d8bbwe" >nul 2>&1
+:: Izin untuk Desktop App Web Viewer (Edge/IE)
+CheckNetIsolation.exe LoopbackExempt -a -n="microsoft.microsoftedge_8wekyb3d8bbwe" >nul 2>&1
+CheckNetIsolation.exe LoopbackExempt -a -n="Microsoft.Win32WebViewHost_cw5n1h2txyewy" >nul 2>&1
+
+:: 5. Launching Word with Recent Document
+echo [5/5] Membuka Dokumen Terakhir (Recent)...
+set "RECENT_DOC="
+for /f "delims=" %%i in ('dir "%USERPROFILE%\Documents\*.docx" /b /s /o-d /a-h 2^>nul') do (
+    set "RECENT_DOC=%%i"
+    goto :found_doc
+)
+
+:found_doc
+if defined RECENT_DOC (
+    echo Membuka: %RECENT_DOC%
+    start "" winword "%RECENT_DOC%"
+) else (
+    echo Tidak ada dokumen recent di folder Documents, membuka Word kosong...
+    start winword
+)
 
 echo.
 echo ------------------------------------------

@@ -148,7 +148,9 @@
 }
 
 .surah-arabic-name {
-  font-family: 'Traditional Arabic', 'Amiri', serif;
+  font-family: 'Scheherazade New', 'Amiri', 'Traditional Arabic', serif;
+  font-variant-ligatures: common-ligatures;
+  text-rendering: optimizeLegibility;
   font-size: 20px;
   color: #1E293B;
   opacity: 0.6;
@@ -359,8 +361,10 @@
 }
 
 .arabic-text-large {
-  font-family: 'Traditional Arabic', 'Amiri', serif;
-  font-size: 28px;
+  font-family: 'Scheherazade New', 'Amiri', 'Traditional Arabic', serif;
+  font-variant-ligatures: common-ligatures;
+  text-rendering: optimizeLegibility;
+  font-size: 24px;
   line-height: 1.5;
   text-align: right;
   direction: rtl;

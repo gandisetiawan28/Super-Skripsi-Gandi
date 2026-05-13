@@ -78,6 +78,7 @@
       <bt:Images>
         <bt:Image id="Icon.16x16" DefaultValue="http://localhost:3000/addin/assets/icon-16.png" />
         <bt:Image id="Icon.32x32" DefaultValue="http://localhost:3000/addin/assets/icon-32.png" />
+        <bt:Image id="Icon.64x64" DefaultValue="http://localhost:3000/addin/assets/icon-64.png" />
         <bt:Image id="Icon.80x80" DefaultValue="http://localhost:3000/addin/assets/icon-80.png" />
       </bt:Images>
       <bt:Urls>

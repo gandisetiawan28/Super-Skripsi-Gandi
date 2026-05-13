@@ -45,12 +45,16 @@ export async function insertQuranVerse({ arabic, arabicNumber, translation, sura
           ${arabic} <span style="color: #000000; font-size: 12pt;">&#x06DD;${arabicNumber}</span>
         </p>
         <p style="text-align: justify; font-family: 'Times New Roman', serif; font-size: 11pt; font-style: italic; color: #555555; line-height: 1.5;">
-          Terjemahan: "${translation}" (Q.S. ${surah}:${ayat})
+          Terjemahan: "${translation}" (Q.S. ${surah}:${ayat}).
         </p>
       </div>
     `;
 
     const range = selection.insertHtml(html, Word.InsertLocation.replace);
+    
+    // Add a new empty paragraph after the content for easy typing
+    range.insertParagraph("", Word.InsertLocation.after);
+    
     range.select(Word.SelectionMode.end);
     await context.sync();
     
@@ -89,12 +93,16 @@ export async function insertFullSurah({ surahName, verses }) {
           ${combinedArabic}
         </p>
         <p style="text-align: justify; font-family: 'Times New Roman', serif; font-size: 11pt; font-style: italic; color: #444444; line-height: 1.6;">
-          Terjemahan: "${combinedTranslations}" (Q.S. ${surahName}:${rangeText})
+          Terjemahan: "${combinedTranslations}" (Q.S. ${surahName}:${rangeText}).
         </p>
       </div>
     `;
 
     const range = selection.insertHtml(html, Word.InsertLocation.replace);
+    
+    // Add a new empty paragraph after
+    range.insertParagraph("", Word.InsertLocation.after);
+
     range.select(Word.SelectionMode.end);
     await context.sync();
     
@@ -124,6 +132,10 @@ export async function insertTafsir({ surah, ayat, tafsir, source }) {
     `;
 
     const range = selection.insertHtml(html, Word.InsertLocation.replace);
+    
+    // Add a new empty paragraph after
+    range.insertParagraph("", Word.InsertLocation.after);
+
     range.select(Word.SelectionMode.end);
     await context.sync();
   });

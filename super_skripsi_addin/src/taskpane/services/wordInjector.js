@@ -103,7 +103,7 @@ export async function insertAcademicText({ paraphrase, citation }) {
     }).join('');
 
     const range = selection.insertHtml(html, Word.InsertLocation.replace);
-    
+    range.insertParagraph("", Word.InsertLocation.after);
     range.select(Word.SelectionMode.end);
     await context.sync();
 
@@ -147,7 +147,7 @@ export async function insertVerbatimQuote({ verbatim, citation }) {
     }
 
     const range = selection.insertHtml(html, Word.InsertLocation.replace);
-    
+    range.insertParagraph("", Word.InsertLocation.after);
     range.select(Word.SelectionMode.end);
     await context.sync();
 

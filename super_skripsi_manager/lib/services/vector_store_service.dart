@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'dart:math';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -18,12 +19,24 @@ class VectorStoreService {
     return _db!;
   }
 
+  static String getDbName(String? email) {
+    final safeEmail = SessionUtils.getSafeEmail(email);
+    return 'vector_store_$safeEmail.db';
+  }
+
+  Future<String> getDbPath() async {
+    final appDir = await getApplicationSupportDirectory();
+    return p.join(appDir.path, 'super_skripsi', getDbName(_userEmail));
+  }
+
   Future<Database> _initDatabase() async {
     sqfliteFfiInit();
     final databaseFactory = databaseFactoryFfi;
-    final appDir = await getApplicationSupportDirectory();
-    final safeEmail = SessionUtils.getSafeEmail(_userEmail);
-    final dbPath = p.join(appDir.path, 'super_skripsi', 'vector_store_$safeEmail.db');
+    final dbPath = await getDbPath();
+
+    // Ensure directory exists
+    final dbDir = Directory(p.dirname(dbPath));
+    if (!await dbDir.exists()) await dbDir.create(recursive: true);
 
     return databaseFactory.openDatabase(
       dbPath,

@@ -59,6 +59,13 @@ class DocumentsNotifier extends StateNotifier<AsyncValue<List<DocumentModel>>> {
   DocumentsNotifier(this.ref, this._vectorStore, this._apiKeyService)
       : super(const AsyncValue.loading()) {
     _loadDocuments();
+    
+    // Auto-refresh when sync finishes successfully
+    ref.listen(syncProvider, (previous, next) {
+      if (next.status == SyncStatus.success) {
+        _loadDocuments();
+      }
+    });
   }
 
   void _log(String msg) {

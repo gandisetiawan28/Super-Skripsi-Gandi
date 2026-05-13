@@ -8,6 +8,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import '../utils/session_utils.dart';
 import '../providers/onboarding_provider.dart';
+import '../providers/research_process_provider.dart';
+import 'vector_store_service.dart';
 
 enum SyncStatus { idle, syncing, success, error }
 
@@ -30,13 +32,14 @@ class SyncState {
 }
 
 class SyncService extends StateNotifier<SyncState> {
+  final Ref _ref;
   final GoogleDriveService _driveService;
   final String? _userEmail;
   static const String _syncBoxBaseName = 'sync_metadata';
 
   Timer? _autoSyncTimer;
 
-  SyncService(this._driveService, this._userEmail) : super(SyncState()) {
+  SyncService(this._ref, this._driveService, this._userEmail) : super(SyncState()) {
     _loadMetadata().then((_) {
       if (_userEmail != null) {
         // Auto-restore then Sync on startup
@@ -48,6 +51,10 @@ class SyncService extends StateNotifier<SyncState> {
     _autoSyncTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       if (_userEmail != null) performSync();
     });
+  }
+
+  void _log(String msg) {
+    _ref.read(researchProcessProvider.notifier).addLog('☁️ [Sync] $msg');
   }
 
   @override
@@ -102,12 +109,19 @@ class SyncService extends StateNotifier<SyncState> {
       state = state.copyWith(message: 'Upload Daftar Dokumen...');
       final registryFile = File(registryPath);
       if (await registryFile.exists()) {
+        _log('Mengecek registry di cloud (LIST)...');
         final driveFiles = await _driveService.listAppDataFiles();
         final remoteName = 'doc_registry_$safeEmail.json';
         final existing = driveFiles.firstWhere(
           (f) => f.name == remoteName,
           orElse: () => drive.File(),
         );
+        
+        if (existing.id != null) {
+          _log('Mengupdate registry (PUT/PATCH): $remoteName');
+        } else {
+          _log('Membuat registry baru (POST): $remoteName');
+        }
         await _driveService.uploadFile(registryFile, driveFileId: existing.id);
       }
 
@@ -129,14 +143,41 @@ class SyncService extends StateNotifier<SyncState> {
           );
           
           if (existing.id == null) {
+            _log('Mengunggah PDF baru (POST): $fileName');
             await _driveService.uploadFile(pdf);
           }
         }
       }
 
-      // 3. Sync Hive Boxes (Latihan & Settings)
-      state = state.copyWith(message: 'Upload Data App...');
+      // 3. Sync SQLite Database (Library Metadata)
+      state = state.copyWith(message: 'Upload Database Perpustakaan...');
       final appDir = await getApplicationSupportDirectory();
+      final dbName = VectorStoreService.getDbName(_userEmail);
+      final dbDir = p.join(appDir.path, 'super_skripsi');
+      
+      // Sync main .db and sidecars (.db-shm, .db-wal)
+      final dbFilesToSync = [
+        dbName,
+        '$dbName-shm',
+        '$dbName-wal',
+      ];
+
+      for (final fileName in dbFilesToSync) {
+        final filePath = p.join(dbDir, fileName);
+        final file = File(filePath);
+        if (await file.exists()) {
+          final driveFiles = await _driveService.listAppDataFiles();
+          final existing = driveFiles.firstWhere(
+            (f) => f.name == fileName,
+            orElse: () => drive.File(),
+          );
+          _log('Sinkronisasi Database (PUT): $fileName');
+          await _driveService.uploadFile(file, driveFileId: existing.id);
+        }
+      }
+
+      // 4. Sync Hive Boxes (Latihan & Settings)
+      state = state.copyWith(message: 'Upload Data Aplikasi...');
       final hiveBoxes = [
         SessionUtils.getDynamicBoxName('latihan_history', _userEmail) + '.hive',
         SessionUtils.getDynamicBoxName('latihan_cache', _userEmail) + '.hive',
@@ -158,6 +199,7 @@ class SyncService extends StateNotifier<SyncState> {
 
       await _saveMetadata();
       state = state.copyWith(status: SyncStatus.success, message: 'Berhasil disinkronkan');
+      _log('✅ Seluruh data berhasil disinkronkan ke Google Drive.');
     } catch (e) {
       state = state.copyWith(status: SyncStatus.error, error: e.toString(), message: 'Gagal Sinkronisasi');
     }
@@ -178,6 +220,7 @@ class SyncService extends StateNotifier<SyncState> {
 
       await Directory(uploadDir).create(recursive: true);
       
+      final appDir = await getApplicationSupportDirectory();
       final driveFiles = await _driveService.listAppDataFiles();
       state = state.copyWith(message: 'Mendownload data...');
 
@@ -196,12 +239,20 @@ class SyncService extends StateNotifier<SyncState> {
           final localName = driveFile.name!.replaceFirst(remotePdfPrefix, '');
           final target = File(p.join(uploadDir, localName));
           if (!await target.exists()) {
+            _log('Mengunduh PDF (GET): $localName');
             await _driveService.downloadFile(driveFile.id!, target);
           }
         }
+        // Restore SQLite Database
+        else if (driveFile.name!.startsWith('vector_store_') && driveFile.name!.contains('.db')) {
+          _log('Memulihkan Database (GET): ${driveFile.name}');
+          final dbDir = p.join(appDir.path, 'super_skripsi');
+          await Directory(dbDir).create(recursive: true);
+          final target = File(p.join(dbDir, driveFile.name!));
+          await _driveService.downloadFile(driveFile.id!, target);
+        }
         // Restore Hive Boxes
         else if (driveFile.name!.contains('.hive')) {
-          final appDir = await getApplicationSupportDirectory();
           final target = File(p.join(appDir.path, driveFile.name!));
           await _driveService.downloadFile(driveFile.id!, target);
         }
@@ -229,5 +280,5 @@ class SyncService extends StateNotifier<SyncState> {
 final syncProvider = StateNotifierProvider<SyncService, SyncState>((ref) {
   final driveService = ref.watch(googleDriveServiceProvider);
   final email = ref.watch(onboardingProvider).googleEmail;
-  return SyncService(driveService, email);
+  return SyncService(ref, driveService, email);
 });

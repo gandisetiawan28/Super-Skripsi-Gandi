@@ -47,7 +47,7 @@ export default function App() {
           <img src="assets/icon-32.png" className="logo-icon-img" alt="Logo" />
           <div className="title-wrapper">
             <span className="logo-text">Super Skripsi</span>
-            <span className="version-tag">v1.1.35</span>
+            <span className="version-tag">v1.1.37</span>
           </div>
         </div>
         <div className="header-badges">

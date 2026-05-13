@@ -41,10 +41,10 @@ export async function insertQuranVerse({ arabic, arabicNumber, translation, sura
     
     const html = `
       <div style="margin-bottom: 10pt;">
-        <p style="text-align: right; font-family: 'Traditional Arabic', 'Amiri', 'Arial', serif; font-size: 12pt; line-height: 1.8; direction: rtl; unicode-bidi: embed;">
+        <p style="text-align: right; font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.8; direction: rtl; unicode-bidi: embed;">
           ${arabic} <span style="color: #000000; font-size: 12pt;">&#x06DD;${arabicNumber}</span>
         </p>
-        <p style="text-align: justify; font-family: 'Times New Roman', serif; font-size: 11pt; font-style: italic; color: #555555; line-height: 1.5;">
+        <p style="text-align: justify; font-family: 'Times New Roman', serif; font-size: 12pt; color: #000000; line-height: 1.5;">
           Terjemahan: "${translation}" (Q.S. ${surah}:${ayat}).
         </p>
       </div>
@@ -89,10 +89,10 @@ export async function insertFullSurah({ surahName, verses }) {
 
     const html = `
       <div style="margin-bottom: 15pt;">
-        <p style="text-align: right; font-family: 'Traditional Arabic', 'Amiri', 'Arial', serif; font-size: 12pt; line-height: 2.2; direction: rtl; unicode-bidi: embed; margin-bottom: 8pt;">
+        <p style="text-align: right; font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 2.2; direction: rtl; unicode-bidi: embed; margin-bottom: 8pt;">
           ${combinedArabic}
         </p>
-        <p style="text-align: justify; font-family: 'Times New Roman', serif; font-size: 11pt; font-style: italic; color: #444444; line-height: 1.6;">
+        <p style="text-align: justify; font-family: 'Times New Roman', serif; font-size: 12pt; color: #000000; line-height: 1.6;">
           Terjemahan: "${combinedTranslations}" (Q.S. ${surahName}:${rangeText}).
         </p>
       </div>
@@ -122,10 +122,10 @@ export async function insertTafsir({ surah, ayat, tafsir, source }) {
     
     const html = `
       <div style="margin-top: 10pt; margin-bottom: 10pt; padding: 10pt; border-left: 3pt solid #E53935; background-color: #F9F9F9;">
-        <p style="font-family: 'Times New Roman', serif; font-size: 11pt; font-weight: bold; color: #E53935; margin-bottom: 5pt;">
+        <p style="font-family: 'Times New Roman', serif; font-size: 12pt; font-weight: bold; color: #000000; margin-bottom: 5pt;">
           Tafsir Q.S. ${surah}:${ayat} (${source})
         </p>
-        <p style="font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.6; text-align: justify; color: #333333;">
+        <p style="font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; text-align: justify; color: #000000;">
           ${tafsir}
         </p>
       </div>

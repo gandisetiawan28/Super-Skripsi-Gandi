@@ -1,7 +1,7 @@
 name: super_skripsi_manager
 description: "Super Skripsi Gandi Manager - Smart Research Engine"
 publish_to: "none"
-version: 1.1.35+1
+version: 1.1.37+1
 
 environment:
   sdk: ^3.5.0

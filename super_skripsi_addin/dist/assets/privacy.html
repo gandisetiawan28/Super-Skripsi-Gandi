@@ -4,45 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kebijakan Privasi - Super Skripsi Gandi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px 20px; background-color: #f9f9f9; }
-        .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        h2 { color: #2980b9; margin-top: 30px; }
-        p { margin-bottom: 15px; }
-        .footer { margin-top: 50px; font-size: 0.9em; color: #7f8c8d; text-align: center; }
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: #94a3b8;
+            line-height: 1.8;
+            margin: 0;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 50px;
+            border-radius: 24px;
+        }
+        h1 { color: white; font-weight: 800; font-size: 2.5rem; margin-bottom: 10px; }
+        h2 { color: #cbd5e1; font-weight: 600; margin-top: 40px; margin-bottom: 15px; border-left: 4px solid var(--primary); padding-left: 15px; }
+        .date { color: #64748b; margin-bottom: 40px; font-size: 0.9rem; }
+        strong { color: white; }
+        .back-link { display: inline-block; margin-bottom: 30px; color: var(--primary); text-decoration: none; font-weight: 600; }
+        .back-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
     <div class="container">
+        <a href="index.html" class="back-link">&larr; Kembali ke Beranda</a>
         <h1>Kebijakan Privasi</h1>
-        <p>Terakhir diperbarui: 13 Mei 2026</p>
+        <p class="date">Terakhir diperbarui: 13 Mei 2026</p>
         
-        <p>Super Skripsi Gandi ("kami") berkomitmen untuk melindungi privasi Anda. Kebijakan Privasi ini menjelaskan bagaimana kami mengelola data Anda saat menggunakan aplikasi kami.</p>
+        <p><strong>Super Skripsi Gandi</strong> berkomitmen untuk melindungi data dan privasi Anda. Dokumen ini menjelaskan bagaimana kami mengelola data Anda saat menggunakan layanan kami.</p>
 
-        <h2>1. Informasi yang Kami Kumpulkan</h2>
-        <p>Kami mengumpulkan informasi minimal yang diperlukan untuk menjalankan fitur aplikasi:</p>
+        <h2>1. Transparansi Data Google Drive</h2>
+        <p>Aplikasi kami menggunakan Google Drive untuk menyimpan data sinkronisasi perpustakaan Anda. Izin yang kami minta adalah:</p>
         <ul>
-            <li><strong>Informasi Akun Google:</strong> Alamat email digunakan untuk mengidentifikasi sesi sinkronisasi Anda.</li>
-            <li><strong>Data Google Drive:</strong> Kami mengakses ruang penyimpanan khusus (AppData) dan file yang Anda pilih secara eksplisit untuk tujuan sinkronisasi metadata perpustakaan penelitian Anda.</li>
+            <li><strong>drive.appdata:</strong> Digunakan untuk menyimpan pengaturan aplikasi dan metadata perpustakaan yang hanya bisa diakses oleh aplikasi ini.</li>
+            <li><strong>drive.file:</strong> Digunakan untuk mengunggah dan mengunduh file PDF yang Anda masukkan ke dalam perpustakaan penelitian Anda sendiri.</li>
         </ul>
 
-        <h2>2. Penggunaan Data</h2>
-        <p>Data yang dikumpulkan digunakan semata-mata untuk:</p>
-        <ul>
-            <li>Sinkronisasi dokumen PDF dan metadata penelitian antar perangkat Anda.</li>
-            <li>Memberikan fungsionalitas pencarian pintar dan ekstraksi metadata menggunakan AI.</li>
-        </ul>
+        <h2>2. Informasi yang Dikumpulkan</h2>
+        <p>Kami hanya mengumpulkan alamat email Google Anda sebagai identitas unik untuk memisahkan data sinkronisasi Anda dari pengguna lain. Kami tidak membagikan email ini kepada pihak ketiga.</p>
 
-        <h2>3. Keamanan Data</h2>
-        <p>Data Anda disimpan secara aman menggunakan infrastruktur Google Drive. Kami tidak menjual atau membagikan data pribadi Anda kepada pihak ketiga mana pun.</p>
+        <h2>3. Keamanan</h2>
+        <p>Seluruh file dan metadata Anda disimpan di penyimpanan cloud Google milik Anda sendiri. Kami tidak memiliki server penyimpanan eksternal yang menyimpan dokumen penelitian Anda.</p>
 
-        <h2>4. Izin Google Drive</h2>
-        <p>Aplikasi kami meminta izin <code>drive.file</code> dan <code>drive.appdata</code> untuk memungkinkan Anda menyimpan cadangan data penelitian Anda sendiri di cloud Anda sendiri.</p>
+        <h2>4. Perubahan Kebijakan</h2>
+        <p>Kami dapat memperbarui kebijakan ini sewaktu-waktu. Perubahan akan diinformasikan melalui pembaruan versi aplikasi.</p>
 
-        <div class="footer">
-            &copy; 2026 Super Skripsi Gandi. Semua hak dilindungi undang-undang.
-        </div>
+        <p style="margin-top: 50px; text-align: center; color: #475569;">&copy; 2026 Super Skripsi Gandi</p>
     </div>
 </body>
 </html>

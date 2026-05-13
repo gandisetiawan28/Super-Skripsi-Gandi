@@ -45,6 +45,8 @@ module.exports = (env, argv) => {
         patterns: [
           { from: 'assets', to: 'assets', noErrorOnMissing: true },
           { from: 'assets/googled7a7da88e6681985.html', to: '.', noErrorOnMissing: true },
+          { from: 'assets/privacy.html', to: '.', noErrorOnMissing: true },
+          { from: 'assets/terms.html', to: '.', noErrorOnMissing: true },
         ],
       }),
     ],

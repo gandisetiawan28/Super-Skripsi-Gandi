@@ -1,7 +1,7 @@
 name: super_skripsi_mobile
 description: "Super Skripsi Gandi - Mobile Edition (Android/Tablet)"
 publish_to: "none"
-version: 1.1.42+1
+version: 1.1.43+1
 
 environment:
   sdk: ^3.5.0

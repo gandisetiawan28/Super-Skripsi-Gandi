@@ -1,77 +1,111 @@
 @echo off
-title Super Skripsi Gandi - Word Add-in Installer
-color 0b
+title Super Skripsi Gandi - Add-in Installer
+color 0A
 
-echo ==========================================
-echo   REGISTERING WORD ADD-IN
-echo ==========================================
+echo =======================================================
+echo    SUPER SKRIPSI GANDI - WORD ADD-IN INSTALLER
+echo =======================================================
 echo.
 
-:: Get current folder path
-set "ADDIN_PATH=%~dp0"
-if "%ADDIN_PATH:~-1%"=="\" set "ADDIN_PATH=%ADDIN_PATH:~0,-1%"
-set "MANIFEST_PATH=%ADDIN_PATH%\manifest.xml"
+:: Get current directory (where manifest.xml is located)
+set "ABS_PATH=%~dp0"
+if "%ABS_PATH:~-1%"=="\" set "ABS_PATH=%ABS_PATH:~0,-1%"
 
-echo Target Path: %ADDIN_PATH%
-echo Manifest   : %MANIFEST_PATH%
+:: Fallback to developer path if manifest.xml is not in the current folder
+if not exist "%ABS_PATH%\manifest.xml" (
+    if exist "%ABS_PATH%\..\..\..\super_skripsi_addin\manifest.xml" (
+        pushd "%ABS_PATH%\..\..\..\super_skripsi_addin"
+        set "ABS_PATH=%CD%"
+        popd
+    )
+)
+
+:: Convert to UNC path for Trust Center compatibility (e.g., \\localhost\C$\...)
+:: Note: This is a fallback, Developer Registry key is more reliable for local use
+set "DRIVE_LETTER=%ABS_PATH:~0,1%"
+set "FOLDER_PATH=%ABS_PATH:~3%"
+set "UNC_PATH=\\localhost\%DRIVE_LETTER%$\%FOLDER_PATH%"
+
+echo Local Path: %ABS_PATH%
+echo UNC Path  : %UNC_PATH%
 echo.
 
-:: 1. Clear Office WEF Cache (Sangat penting agar Add-in tidak stuck di versi lama)
-echo [1/4] Clearing Office Cache...
+:: Registry keys
+set "WEF_KEY=HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\WEF\Developer"
+set "TRUST_LOC=HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\Registration\Trusted Locations\SuperSkripsi"
+set "TRUST_CAT=HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\WEF\TrustedCatalogs\SuperSkripsiGandi"
+
+:: Check if Word is running
+tasklist /FI "IMAGENAME eq winword.exe" 2>NUL | find /I /N "winword.exe">NUL
+if "%ERRORLEVEL%"=="0" (
+    color 0E
+    echo [WARNING] Microsoft Word sedang berjalan.
+    echo Harap simpan pekerjaan Anda dan TUTUP Word sebelum melanjutkan.
+    echo.
+    pause
+)
+
+echo [1/4] Membersihkan Cache Office WEF...
 if exist "%LocalAppData%\Microsoft\Office\16.0\Wef" (
     rmdir /s /q "%LocalAppData%\Microsoft\Office\16.0\Wef" >nul 2>&1
-)
-mkdir "%LocalAppData%\Microsoft\Office\16.0\Wef" >nul 2>&1
-
-:: 2. Registry for Trusted Catalogs
-echo [2/4] Registering Trusted Catalog...
-set "REG_KEY=HKCU\Software\Microsoft\Office\16.0\Word\Trusted Catalogs\{a8b2c3d4-e5f6-7890-abcd-ef1234567890}"
-:: Gunakan path lokal langsung (lebih stabil di PC pelanggan)
-reg add "%REG_KEY%" /v URL /t REG_SZ /d "%ADDIN_PATH%" /f >nul 2>&1
-reg add "%REG_KEY%" /v Flags /t REG_DWORD /d 1 /f >nul 2>&1
-reg add "%REG_KEY%" /v Id /t REG_DWORD /d 1 /f >nul 2>&1
-
-:: 3. Registry for Trusted Locations (Keamanan Word)
-echo [3/4] Adding to Trusted Locations...
-set "TRUST_LOC=HKCU\Software\Microsoft\Office\16.0\Registration\Trusted Locations\SuperSkripsi"
-reg add "%TRUST_LOC%" /v "Path" /t REG_SZ /d "%ADDIN_PATH%" /f >nul 2>&1
-reg add "%TRUST_LOC%" /v "AllowSubfolders" /t REG_DWORD /d 1 /f >nul 2>&1
-
-:: 4. Loopback Exemption (Sangat penting agar icon muncul di Windows 10/11)
-echo [4/5] Enabling Localhost access (Loopback Exemption)...
-:: Izin untuk Word
-CheckNetIsolation.exe LoopbackExempt -a -n="microsoft.winword_8wekyb3d8bbwe" >nul 2>&1
-:: Izin untuk Desktop App Web Viewer (Edge/IE)
-CheckNetIsolation.exe LoopbackExempt -a -n="microsoft.microsoftedge_8wekyb3d8bbwe" >nul 2>&1
-CheckNetIsolation.exe LoopbackExempt -a -n="Microsoft.Win32WebViewHost_cw5n1h2txyewy" >nul 2>&1
-
-:: 5. Launching Word with Recent Document
-echo [5/5] Membuka Dokumen Terakhir (Recent)...
-set "RECENT_DOC="
-for /f "delims=" %%i in ('dir "%USERPROFILE%\Documents\*.docx" /b /s /o-d /a-h 2^>nul') do (
-    set "RECENT_DOC=%%i"
-    goto :found_doc
-)
-
-:found_doc
-if defined RECENT_DOC (
-    echo Membuka: %RECENT_DOC%
-    start "" winword "%RECENT_DOC%"
+    mkdir "%LocalAppData%\Microsoft\Office\16.0\Wef" >nul 2>&1
+    echo Cache berhasil dibersihkan.
 ) else (
-    echo Tidak ada dokumen recent di folder Documents, membuka Word kosong...
+    echo Cache tidak ditemukan, lanjut...
+)
+echo.
+
+echo [2/4] Mendaftarkan Jalur Sideload (Developer)...
+reg add "%WEF_KEY%" /v "SuperSkripsiGandi" /t REG_SZ /d "%ABS_PATH%" /f >nul 2>&1
+
+echo [3/4] Mendaftarkan Katalog Terpercaya (Shared Folder)...
+reg add "%TRUST_CAT%" /v "Id" /t REG_SZ /d "{88888888-4444-4444-4444-121212121212}" /f >nul 2>&1
+reg add "%TRUST_CAT%" /v "Url" /t REG_SZ /d "%UNC_PATH%" /f >nul 2>&1
+reg add "%TRUST_CAT%" /v "Flags" /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "%TRUST_CAT%" /v "ShowInMenu" /t REG_DWORD /d 1 /f >nul 2>&1
+
+echo [4/4] Menambahkan ke Lokasi Terpercaya (Security)...
+reg add "%TRUST_LOC%" /v "Path" /t REG_SZ /d "%ABS_PATH%" /f >nul 2>&1
+reg add "%TRUST_LOC%" /v "AllowSubfolders" /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "%TRUST_LOC%" /v "Description" /t REG_SZ /d "Super Skripsi Gandi Workspace" /f >nul 2>&1
+
+if %errorlevel% neq 0 (
+    color 0C
+    echo Error: Gagal menambahkan registry keys. Coba jalankan aplikasi sebagai Administrator.
+    pause
+    exit /b %errorlevel%
+)
+
+echo.
+echo [BERHASIL] Registry telah diperbarui.
+echo.
+
+:: Check for npm (developer tools)
+where npm >nul 2>&1
+if %errorlevel% equ 0 (
+    echo [INFO] Mendeteksi Node.js, mencoba menjalankan 'sideload' otomatis...
+    pushd "%ABS_PATH%"
+    call npm run sideload
+    popd
+) else (
+    echo [INFO] Node.js tidak ditemukan. Membuka Word secara manual...
     start winword
 )
 
 echo.
-echo ------------------------------------------
-echo BERHASIL! Word sedang dibuka...
-echo ------------------------------------------
-echo LANGKAH TERAKHIR (Hanya sekali):
-echo 1. Di Word, Klik menu "Insert" -> "My Add-ins"
-echo 2. Pilih tab "Shared Folder" (Folder Bersama)
-echo 3. Pilih "Super Skripsi Gandi" dan klik OK/Add.
+echo =======================================================
+echo    INSTALASI BERHASIL!
+echo =======================================================
 echo.
-echo Add-in akan muncul secara permanen di Tab "Home" bagian kanan.
+echo Untuk menggunakan Add-in di Microsoft Word:
+echo 1. Buka Microsoft Word.
+echo 2. Pergi ke tab 'Insert' (Sisipkan).
+echo 3. Klik 'My Add-ins' (Add-in Saya).
+echo 4. Pilih tab 'Shared Folder' atau 'Developer'.
+echo 5. Klik 'Super Skripsi Gandi Manager' dan klik 'Add'.
 echo.
-timeout /t 10
+echo Pastikan aplikasi 'Super Skripsi Manager' sedang berjalan!
+echo.
+
+pause
 exit

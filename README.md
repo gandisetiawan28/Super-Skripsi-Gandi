@@ -71,4 +71,3 @@ Sistem ini terbagi menjadi 3 komponen utama yang saling terhubung:
 ---
 **Developed by Gandi Setiawan.**
 "Empowering Academic Excellence through Intelligent Automation."
-Download installer Windows dan Android pada bagian **Releases**. 
